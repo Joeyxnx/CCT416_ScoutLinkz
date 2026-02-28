@@ -7,7 +7,7 @@ const ATHLETE = {
   gradYear: 2026,
   location: "Toronto, ON",
   height: "6'1\"",
-  weight: "195 lb",
+  weight: "200 lbs",
   verified: false,
   gpa: 3.7,
   foot: "Right",
