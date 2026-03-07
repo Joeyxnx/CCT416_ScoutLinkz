@@ -81,13 +81,13 @@ function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        // Detect role: check if they have an athlete doc
+        // Keep loading=true until role is resolved — prevents flash
         try {
           const athleteSnap = await getDoc(doc(db, "athletes", firebaseUser.uid));
           const scoutSnap   = await getDoc(doc(db, "scouts",   firebaseUser.uid));
           if (athleteSnap.exists()) setRole("athlete");
           else if (scoutSnap.exists()) setRole("scout");
-          else setRole("scout"); // default new users to scout
+          else setRole("scout");
         } catch {
           setRole("scout");
         }
@@ -95,7 +95,7 @@ function AuthProvider({ children }) {
         setUser(null);
         setRole(null);
       }
-      setLoading(false);
+      setLoading(false); // only hide loader AFTER role is known
     });
     return unsubscribe;
   }, []);
