@@ -84,9 +84,12 @@ function AuthProvider({ children }) {
         // Detect role: check if they have an athlete doc
         try {
           const athleteSnap = await getDoc(doc(db, "athletes", firebaseUser.uid));
-          setRole(athleteSnap.exists() ? "athlete" : "scout");
+          const scoutSnap   = await getDoc(doc(db, "scouts",   firebaseUser.uid));
+          if (athleteSnap.exists()) setRole("athlete");
+          else if (scoutSnap.exists()) setRole("scout");
+          else setRole("scout"); // default new users to scout
         } catch {
-          setRole("scout"); // default to scout if check fails
+          setRole("scout");
         }
       } else {
         setUser(null);
@@ -115,9 +118,14 @@ function AuthProvider({ children }) {
   async function signupAthlete(email, password, fullName) {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: fullName });
+    // Write a placeholder athlete doc immediately so role detection works on next load
+    await setDoc(doc(db, "athletes", cred.user.uid), {
+      name: fullName, email, uid: cred.user.uid,
+      role: "athlete", profileComplete: false,
+      createdAt: serverTimestamp(),
+    });
     setUser({ ...cred.user, displayName: fullName });
     setRole("athlete");
-    // Athlete doc is created after profile form is filled out
   }
 
   // Keep legacy signup as scout signup
@@ -1248,9 +1256,10 @@ function AthleteProfileSetup() {
           .map(h => ({ ...h, videoId: extractVideoId(h.videoId) })),
         stats: form.stats.filter(s => s.label && s.value),
         uid: user.uid,
+        profileComplete: true,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      });
+      }, { merge: true });
       // Reload page so role detection fires again
       window.location.reload();
     } catch (e) {
@@ -1484,6 +1493,7 @@ function AppRouter() {
 
   if (!user) return <LoginPage />;
   if (role === "athlete" && !athleteProfile) return <AthleteProfileSetup />;
+  if (role === "athlete" && athleteProfile && !athleteProfile.profileComplete) return <AthleteProfileSetup />;
   if (role === "athlete" && athleteProfile)  return <AthleteDashboard profile={athleteProfile} />;
   return <ScoutDashboard />;
 }
