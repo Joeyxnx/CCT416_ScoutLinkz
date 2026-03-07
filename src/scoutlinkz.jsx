@@ -16,6 +16,8 @@ import { getAnalytics } from "firebase/analytics";
 import {
   getAuth,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -57,6 +59,13 @@ function AuthProvider({ children }) {
     await signInWithEmailAndPassword(auth, email, password);
   }
 
+  async function signup(email, password, fullName) {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(cred.user, { displayName: fullName });
+    // Refresh user so displayName is available immediately
+    setUser({ ...cred.user, displayName: fullName });
+  }
+
   async function logout() {
     await signOut(auth);
   }
@@ -66,7 +75,7 @@ function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, resetPassword }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );
@@ -83,40 +92,57 @@ function friendlyError(code) {
     "auth/too-many-requests":       "Too many attempts. Try again later.",
     "auth/invalid-email":           "Please enter a valid email address.",
     "auth/network-request-failed":  "Network error. Check your connection.",
+    "auth/email-already-in-use":    "An account with this email already exists.",
+    "auth/weak-password":           "Password must be at least 6 characters.",
   };
   return map[code] || "Something went wrong. Please try again.";
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LOGIN PAGE
+// LOGIN / SIGNUP PAGE
 // ═══════════════════════════════════════════════════════════════
 function LoginPage() {
-  const { login, resetPassword } = useAuth();
-  const [email, setEmail]         = useState("");
-  const [password, setPassword]   = useState("");
-  const [error, setError]         = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [showPw, setShowPw]       = useState(false);
-  const [mode, setMode]           = useState("login");   // "login" | "reset"
-  const [resetSent, setResetSent] = useState(false);
+  const { login, signup, resetPassword } = useAuth();
+  const [mode, setMode]               = useState("login"); // "login" | "signup" | "reset"
+  const [email, setEmail]             = useState("");
+  const [password, setPassword]       = useState("");
+  const [confirmPw, setConfirmPw]     = useState("");
+  const [fullName, setFullName]       = useState("");
+  const [error, setError]             = useState("");
+  const [submitting, setSubmitting]   = useState(false);
+  const [showPw, setShowPw]           = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [resetSent, setResetSent]     = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
+
+  function switchMode(next) {
+    setMode(next); setError(""); setFieldErrors({}); setResetSent(false);
+  }
 
   function validate() {
     const errs = {};
-    if (!email.trim())    errs.email    = "Email is required.";
-    else if (!/\S+@\S+\.\S+/.test(email)) errs.email = "Enter a valid email.";
-    if (mode === "login" && !password)  errs.password = "Password is required.";
+    if (mode === "signup" && !fullName.trim()) errs.fullName = "Full name is required.";
+    if (!email.trim()) errs.email = "Email is required.";
+    else if (!/\S+@\S+\.\S+/.test(email))     errs.email = "Enter a valid email.";
+    if (mode !== "reset") {
+      if (!password)                errs.password = "Password is required.";
+      else if (password.length < 6) errs.password = "At least 6 characters required.";
+    }
+    if (mode === "signup" && password && confirmPw !== password)
+      errs.confirmPw = "Passwords don't match.";
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   }
 
-  async function handleLogin(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     if (!validate()) return;
     setSubmitting(true);
     try {
-      await login(email, password);
+      if (mode === "login")  await login(email, password);
+      if (mode === "signup") await signup(email, password, fullName.trim());
+      if (mode === "reset")  { await resetPassword(email); setResetSent(true); }
     } catch (err) {
       setError(friendlyError(err.code));
     } finally {
@@ -124,38 +150,20 @@ function LoginPage() {
     }
   }
 
-  async function handleReset(e) {
-    e.preventDefault();
-    setError("");
-    if (!validate()) return;
-    setSubmitting(true);
-    try {
-      await resetPassword(email);
-      setResetSent(true);
-    } catch (err) {
-      setError(friendlyError(err.code));
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  const titles    = { login: "Welcome back",    signup: "Create account",                  reset: "Reset password" };
+  const subs      = { login: "Sign in to access your scouting dashboard", signup: "Join ScoutLinkz as a scout or coach", reset: "We'll send a reset link to your email" };
+  const btnLabels = { login: "Sign In →",       signup: "Create Account →",                reset: "Send Reset Link →" };
 
   return (
     <div style={s.loginRoot}>
       <style>{loginStyles}</style>
-
-      {/* Background grid */}
       <div style={s.gridBg} aria-hidden="true">
-        {Array.from({ length: 80 }).map((_, i) => (
-          <div key={i} style={s.gridCell} />
-        ))}
+        {Array.from({ length: 80 }).map((_, i) => <div key={i} style={s.gridCell} />)}
       </div>
-
-      {/* Glow orbs */}
       <div style={s.orb1} aria-hidden="true" />
       <div style={s.orb2} aria-hidden="true" />
 
       <div style={s.loginWrap}>
-        {/* Logo */}
         <div style={s.logoRow}>
           <div style={s.logoIcon}>⚽</div>
           <div>
@@ -164,114 +172,109 @@ function LoginPage() {
           </div>
         </div>
 
-        {/* Card */}
+        {/* Sign In / Create Account tabs */}
+        {mode !== "reset" && (
+          <div style={s.tabs}>
+            {["login", "signup"].map(t => (
+              <button key={t} type="button"
+                style={mode === t ? { ...s.tab, ...s.tabActive } : s.tab}
+                onClick={() => switchMode(t)}
+              >
+                {t === "login" ? "Sign In" : "Create Account"}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div style={s.card}>
-          {mode === "login" ? (
+          <div style={s.cardHead}>
+            <h1 style={s.cardTitle}>{titles[mode]}</h1>
+            <p style={s.cardSub}>{subs[mode]}</p>
+          </div>
+
+          {error && <div style={s.errorBanner}><span>⚠</span> {error}</div>}
+
+          {mode === "reset" && resetSent ? (
             <>
-              <div style={s.cardHead}>
-                <h1 style={s.cardTitle}>Welcome back</h1>
-                <p style={s.cardSub}>Sign in to access your scouting dashboard</p>
+              <div style={s.successBanner}>✓ Reset link sent! Check your inbox.</div>
+              <button type="button" style={s.backBtn} onClick={() => switchMode("login")}>← Back to sign in</button>
+            </>
+          ) : (
+            <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+              {/* Full name — signup only */}
+              {mode === "signup" && (
+                <div style={s.field}>
+                  <label style={s.label}>Full Name</label>
+                  <input className="sl-input" type="text" value={fullName} placeholder="Jane Smith"
+                    autoComplete="name"
+                    onChange={e => { setFullName(e.target.value); setFieldErrors(f => ({ ...f, fullName: "" })); }}
+                    style={fieldErrors.fullName ? { ...s.input, borderColor: "#ef4444" } : s.input}
+                  />
+                  {fieldErrors.fullName && <div style={s.fieldErr}>{fieldErrors.fullName}</div>}
+                </div>
+              )}
+
+              {/* Email */}
+              <div style={s.field}>
+                <label style={s.label}>Email</label>
+                <input className="sl-input" type="email" value={email} placeholder="scout@yourteam.com"
+                  autoComplete="email"
+                  onChange={e => { setEmail(e.target.value); setFieldErrors(f => ({ ...f, email: "" })); }}
+                  style={fieldErrors.email ? { ...s.input, borderColor: "#ef4444" } : s.input}
+                />
+                {fieldErrors.email && <div style={s.fieldErr}>{fieldErrors.email}</div>}
               </div>
 
-              {error && <div style={s.errorBanner}><span>⚠</span> {error}</div>}
-
-              <form onSubmit={handleLogin} noValidate>
-                <div style={s.field}>
-                  <label style={s.label}>Email</label>
-                  <input
-                    className="sl-input"
-                    type="email"
-                    value={email}
-                    onChange={e => { setEmail(e.target.value); setFieldErrors(f => ({ ...f, email: "" })); }}
-                    placeholder="scout@yourteam.com"
-                    autoComplete="email"
-                    style={fieldErrors.email ? { ...s.input, borderColor: "#ef4444" } : s.input}
-                  />
-                  {fieldErrors.email && <div style={s.fieldErr}>{fieldErrors.email}</div>}
-                </div>
-
+              {/* Password */}
+              {mode !== "reset" && (
                 <div style={s.field}>
                   <label style={s.label}>Password</label>
                   <div style={s.pwWrap}>
-                    <input
-                      className="sl-input"
-                      type={showPw ? "text" : "password"}
-                      value={password}
-                      onChange={e => { setPassword(e.target.value); setFieldErrors(f => ({ ...f, password: "" })); }}
+                    <input className="sl-input" type={showPw ? "text" : "password"} value={password}
                       placeholder="••••••••"
-                      autoComplete="current-password"
-                      style={fieldErrors.password
-                        ? { ...s.input, ...s.pwInput, borderColor: "#ef4444" }
-                        : { ...s.input, ...s.pwInput }}
+                      autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                      onChange={e => { setPassword(e.target.value); setFieldErrors(f => ({ ...f, password: "" })); }}
+                      style={fieldErrors.password ? { ...s.input, ...s.pwInput, borderColor: "#ef4444" } : { ...s.input, ...s.pwInput }}
                     />
-                    <button
-                      type="button"
-                      style={s.eyeBtn}
-                      onClick={() => setShowPw(v => !v)}
-                      aria-label={showPw ? "Hide password" : "Show password"}
-                    >
-                      {showPw ? "🙈" : "👁"}
-                    </button>
+                    <button type="button" style={s.eyeBtn} onClick={() => setShowPw(v => !v)}>{showPw ? "🙈" : "👁"}</button>
                   </div>
                   {fieldErrors.password && <div style={s.fieldErr}>{fieldErrors.password}</div>}
                 </div>
-
-                <div style={s.forgotRow}>
-                  <button type="button" style={s.forgotBtn} onClick={() => { setMode("reset"); setError(""); setFieldErrors({}); }}>
-                    Forgot password?
-                  </button>
-                </div>
-
-                <button
-                  type="submit"
-                  className="sl-submit"
-                  disabled={submitting}
-                  style={s.submitBtn}
-                >
-                  {submitting ? <span className="sl-spinner" /> : null}
-                  {submitting ? "Signing in…" : "Sign In →"}
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <div style={s.cardHead}>
-                <h1 style={s.cardTitle}>Reset password</h1>
-                <p style={s.cardSub}>We'll send a reset link to your email</p>
-              </div>
-
-              {resetSent ? (
-                <div style={s.successBanner}>
-                  ✓ Reset link sent! Check your inbox.
-                </div>
-              ) : (
-                <>
-                  {error && <div style={s.errorBanner}><span>⚠</span> {error}</div>}
-                  <form onSubmit={handleReset} noValidate>
-                    <div style={s.field}>
-                      <label style={s.label}>Email</label>
-                      <input
-                        className="sl-input"
-                        type="email"
-                        value={email}
-                        onChange={e => { setEmail(e.target.value); setFieldErrors(f => ({ ...f, email: "" })); }}
-                        placeholder="scout@yourteam.com"
-                        style={fieldErrors.email ? { ...s.input, borderColor: "#ef4444" } : s.input}
-                      />
-                      {fieldErrors.email && <div style={s.fieldErr}>{fieldErrors.email}</div>}
-                    </div>
-                    <button type="submit" className="sl-submit" disabled={submitting} style={s.submitBtn}>
-                      {submitting ? <span className="sl-spinner" /> : null}
-                      {submitting ? "Sending…" : "Send Reset Link →"}
-                    </button>
-                  </form>
-                </>
               )}
 
-              <button type="button" style={s.backBtn} onClick={() => { setMode("login"); setResetSent(false); setError(""); }}>
-                ← Back to sign in
+              {/* Confirm password — signup only */}
+              {mode === "signup" && (
+                <div style={s.field}>
+                  <label style={s.label}>Confirm Password</label>
+                  <div style={s.pwWrap}>
+                    <input className="sl-input" type={showConfirm ? "text" : "password"} value={confirmPw}
+                      placeholder="••••••••" autoComplete="new-password"
+                      onChange={e => { setConfirmPw(e.target.value); setFieldErrors(f => ({ ...f, confirmPw: "" })); }}
+                      style={fieldErrors.confirmPw ? { ...s.input, ...s.pwInput, borderColor: "#ef4444" } : { ...s.input, ...s.pwInput }}
+                    />
+                    <button type="button" style={s.eyeBtn} onClick={() => setShowConfirm(v => !v)}>{showConfirm ? "🙈" : "👁"}</button>
+                  </div>
+                  {fieldErrors.confirmPw && <div style={s.fieldErr}>{fieldErrors.confirmPw}</div>}
+                </div>
+              )}
+
+              {/* Forgot password — login only */}
+              {mode === "login" && (
+                <div style={s.forgotRow}>
+                  <button type="button" style={s.forgotBtn} onClick={() => switchMode("reset")}>Forgot password?</button>
+                </div>
+              )}
+
+              <button type="submit" className="sl-submit" disabled={submitting} style={s.submitBtn}>
+                {submitting && <span className="sl-spinner" />}
+                {submitting ? "Please wait…" : btnLabels[mode]}
               </button>
-            </>
+
+              {mode === "reset" && (
+                <button type="button" style={s.backBtn} onClick={() => switchMode("login")}>← Back to sign in</button>
+              )}
+            </form>
           )}
         </div>
       </div>
@@ -552,6 +555,19 @@ const s = {
     textDecoration: "underline", textUnderlineOffset: 3,
   },
   submitBtn: { marginTop: 4 },
+  tabs: {
+    display: "flex", background: "rgba(15,23,42,.8)", border: "1px solid #22304a",
+    borderRadius: 16, padding: 4, marginBottom: 12, gap: 4,
+  },
+  tab: {
+    flex: 1, padding: "10px 0", borderRadius: 12, border: "none",
+    background: "transparent", color: "#98a7c2", fontWeight: 700, fontSize: 14,
+    cursor: "pointer", fontFamily: "inherit", transition: "all .2s",
+  },
+  tabActive: {
+    background: "rgba(79,70,229,.2)", color: "#a5b4fc",
+    border: "1px solid rgba(79,70,229,.35)",
+  },
   demoNote: {
     background: "rgba(79,70,229,.08)", border: "1px dashed rgba(79,70,229,.3)",
     borderRadius: 10, padding: "10px 14px", color: "#98a7c2", fontSize: 12,
