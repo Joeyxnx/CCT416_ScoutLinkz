@@ -22,6 +22,11 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
 } from "firebase/auth";
+import {
+  getFirestore,
+  doc, getDoc, setDoc, updateDoc, deleteDoc,
+  collection, getDocs, query, orderBy, serverTimestamp,
+} from "firebase/firestore";
 
 // ─── FIREBASE CONFIG ─────────────────────────────────────────
 const firebaseConfig = {
@@ -38,6 +43,30 @@ const firebaseConfig = {
 const app       = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth      = getAuth(app);
+const db        = getFirestore(app);
+
+// ─── FIRESTORE HELPERS ───────────────────────────────────────
+// Athletes
+export async function fetchAthletes() {
+  const snap = await getDocs(query(collection(db, "athletes"), orderBy("createdAt", "desc")));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+export async function fetchAthlete(uid) {
+  const snap = await getDoc(doc(db, "athletes", uid));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+export async function saveAthlete(uid, data) {
+  await setDoc(doc(db, "athletes", uid), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+}
+
+// Scout data (saved lists, statuses, notes)
+export async function fetchScoutData(scoutUid) {
+  const snap = await getDoc(doc(db, "scouts", scoutUid));
+  return snap.exists() ? snap.data() : { savedIds: [], statuses: {}, notes: {} };
+}
+export async function saveScoutData(scoutUid, data) {
+  await setDoc(doc(db, "scouts", scoutUid), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+}
 // ────────────────────────────────────────────────────────────
 
 // ─── AUTH CONTEXT ────────────────────────────────────────────
@@ -45,11 +74,24 @@ const AuthContext = createContext(null);
 
 function AuthProvider({ children }) {
   const [user, setUser]       = useState(undefined); // undefined = loading
+  const [role, setRole]       = useState(null);      // "scout" | "athlete"
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser);
+        // Detect role: check if they have an athlete doc
+        try {
+          const athleteSnap = await getDoc(doc(db, "athletes", firebaseUser.uid));
+          setRole(athleteSnap.exists() ? "athlete" : "scout");
+        } catch {
+          setRole("scout"); // default to scout if check fails
+        }
+      } else {
+        setUser(null);
+        setRole(null);
+      }
       setLoading(false);
     });
     return unsubscribe;
@@ -59,11 +101,28 @@ function AuthProvider({ children }) {
     await signInWithEmailAndPassword(auth, email, password);
   }
 
-  async function signup(email, password, fullName) {
+  async function signupScout(email, password, fullName) {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: fullName });
-    // Refresh user so displayName is available immediately
+    // Create scout doc
+    await setDoc(doc(db, "scouts", cred.user.uid), {
+      displayName: fullName, email, role: "scout", createdAt: serverTimestamp(),
+    });
     setUser({ ...cred.user, displayName: fullName });
+    setRole("scout");
+  }
+
+  async function signupAthlete(email, password, fullName) {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(cred.user, { displayName: fullName });
+    setUser({ ...cred.user, displayName: fullName });
+    setRole("athlete");
+    // Athlete doc is created after profile form is filled out
+  }
+
+  // Keep legacy signup as scout signup
+  async function signup(email, password, fullName) {
+    return signupScout(email, password, fullName);
   }
 
   async function logout() {
@@ -75,7 +134,7 @@ function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, resetPassword }}>
+    <AuthContext.Provider value={{ user, role, loading, login, signup, signupScout, signupAthlete, logout, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );
@@ -102,8 +161,9 @@ function friendlyError(code) {
 // LOGIN / SIGNUP PAGE
 // ═══════════════════════════════════════════════════════════════
 function LoginPage() {
-  const { login, signup, resetPassword } = useAuth();
+  const { login, signupScout, signupAthlete, resetPassword } = useAuth();
   const [mode, setMode]               = useState("login"); // "login" | "signup" | "reset"
+  const [signupRole, setSignupRole]   = useState("scout"); // "scout" | "athlete"
   const [email, setEmail]             = useState("");
   const [password, setPassword]       = useState("");
   const [confirmPw, setConfirmPw]     = useState("");
@@ -141,7 +201,10 @@ function LoginPage() {
     setSubmitting(true);
     try {
       if (mode === "login")  await login(email, password);
-      if (mode === "signup") await signup(email, password, fullName.trim());
+      if (mode === "signup") {
+        if (signupRole === "athlete") await signupAthlete(email, password, fullName.trim());
+        else                          await signupScout(email, password, fullName.trim());
+      }
       if (mode === "reset")  { await resetPassword(email); setResetSent(true); }
     } catch (err) {
       setError(friendlyError(err.code));
@@ -201,6 +264,29 @@ function LoginPage() {
             </>
           ) : (
             <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+              {/* Role picker — signup only */}
+              {mode === "signup" && (
+                <div style={s.field}>
+                  <label style={s.label}>I am a...</label>
+                  <div style={{ display:"flex", gap:8 }}>
+                    {[
+                      { key:"scout",   label:"🔍 Scout / Coach",  desc:"Browse & recruit athletes" },
+                      { key:"athlete", label:"⚽ Athlete",         desc:"Create my recruiting profile" },
+                    ].map(r => (
+                      <button key={r.key} type="button" onClick={() => setSignupRole(r.key)}
+                        style={{ flex:1, padding:"10px 12px", borderRadius:10, cursor:"pointer", fontFamily:"'Plus Jakarta Sans',inherit", textAlign:"left", transition:"all .2s",
+                          border: signupRole === r.key ? "1px solid rgba(99,102,241,.5)" : "1px solid #1e3352",
+                          background: signupRole === r.key ? "rgba(99,102,241,.12)" : "rgba(255,255,255,.03)",
+                          color: signupRole === r.key ? "#c7d2fe" : "#4d6a8a",
+                        }}>
+                        <div style={{ fontWeight:700, fontSize:13 }}>{r.label}</div>
+                        <div style={{ fontSize:11, marginTop:3, opacity:.7 }}>{r.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Full name — signup only */}
               {mode === "signup" && (
@@ -870,22 +956,123 @@ function PageSettings({ user }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SCOUT DASHBOARD — main shell
+// ATHLETE DASHBOARD — view & manage own profile
 // ═══════════════════════════════════════════════════════════════
+function AthleteDashboard({ profile }) {
+  const { user, logout } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const st = profile;
+
+  return (
+    <div style={{ minHeight:"100vh", background:"#080e1a", color:"#f0f6ff", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500&display=swap'); *{box-sizing:border-box;}`}</style>
+
+      <header style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 32px",borderBottom:"1px solid #162438",background:"rgba(8,14,26,.95)",backdropFilter:"blur(10px)",position:"sticky",top:0,zIndex:10 }}>
+        <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+          <div style={{ width:34,height:34,borderRadius:10,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16 }}>⚽</div>
+          <span style={{ fontWeight:800,fontSize:15,letterSpacing:"-.02em" }}>ScoutLinkz</span>
+          <span style={{ fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:999,background:"rgba(99,102,241,.12)",border:"1px solid rgba(99,102,241,.25)",color:"#c7d2fe",marginLeft:4 }}>Athlete</span>
+        </div>
+        <button onClick={async()=>{setLoggingOut(true);await logout();}} disabled={loggingOut}
+          style={{ background:"rgba(239,68,68,.07)",border:"1px solid rgba(239,68,68,.18)",color:"#f87171",borderRadius:8,padding:"7px 14px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>
+          {loggingOut?"…":"Sign out"}
+        </button>
+      </header>
+
+      <main style={{ maxWidth:800, margin:"0 auto", padding:"32px 24px" }}>
+        {/* Profile card */}
+        <div style={{ background:"rgba(10,21,37,.9)",border:"1px solid #162438",borderRadius:20,padding:28,marginBottom:20 }}>
+          <div style={{ display:"flex",alignItems:"flex-start",gap:16,marginBottom:18 }}>
+            <div style={{ width:64,height:64,borderRadius:18,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:22 }}>
+              {st.name?.split(" ").map(x=>x[0]).join("") || "?"}
+            </div>
+            <div>
+              <div style={{ fontWeight:800,fontSize:22,letterSpacing:"-.03em" }}>{st.name}</div>
+              <div style={{ color:"#4d6a8a",fontSize:14,marginTop:4 }}>{st.sport} · {st.position} · Grad {st.gradYear} · {st.location}</div>
+              <div style={{ display:"flex",gap:8,marginTop:10,flexWrap:"wrap" }}>
+                {[`GPA ${st.gpa}`,st.height,st.weight,`${st.foot} foot`].filter(Boolean).map(t=>(
+                  <span key={t} style={{ fontSize:12,fontWeight:600,padding:"3px 10px",borderRadius:999,border:"1px solid #162438",background:"rgba(255,255,255,.04)",color:"#4d6a8a" }}>{t}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <p style={{ color:"#4d6a8a",lineHeight:1.6,margin:0,fontFamily:"'DM Sans',sans-serif" }}>{st.bio}</p>
+        </div>
+
+        {/* Stats */}
+        {st.stats?.length > 0 && (
+          <div style={{ background:"rgba(10,21,37,.9)",border:"1px solid #162438",borderRadius:18,padding:22,marginBottom:20 }}>
+            <div style={{ fontWeight:800,fontSize:15,marginBottom:14,letterSpacing:"-.02em" }}>Your Stats</div>
+            <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10 }}>
+              {st.stats.map((s,i)=>(
+                <div key={i} style={{ background:"rgba(255,255,255,.04)",border:"1px solid #162438",borderRadius:12,padding:14 }}>
+                  <div style={{ fontWeight:800,fontSize:20 }}>{s.value}</div>
+                  <div style={{ color:"#4d6a8a",fontSize:12,marginTop:3 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Status banner */}
+        <div style={{ background:"rgba(99,102,241,.07)",border:"1px dashed rgba(99,102,241,.25)",borderRadius:16,padding:"18px 22px",display:"flex",alignItems:"center",gap:16 }}>
+          <span style={{ fontSize:28 }}>🎯</span>
+          <div>
+            <div style={{ fontWeight:700,fontSize:14,color:"#c7d2fe" }}>Your profile is live</div>
+            <div style={{ color:"#4d6a8a",fontSize:13,marginTop:3,fontFamily:"'DM Sans',sans-serif" }}>Scouts can now discover and contact you. Profile editing coming soon.</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+
 function ScoutDashboard() {
   const { user, logout } = useAuth();
   const [page, setPage]         = useState("dashboard");
   const [viewingAthlete, setViewingAthlete] = useState(null);
-  const [statuses, setStatuses] = useState({ 1:"in-review", 2:"interested", 3:"contacted" });
-  const [savedIds, setSavedIds] = useState([1, 2]);
+  const [statuses, setStatuses] = useState({});
+  const [savedIds, setSavedIds] = useState([]);
   const [loggingOut, setLoggingOut] = useState(false);
   const [search, setSearch]     = useState("");
+  const [athletes, setAthletes] = useState(ATHLETES);
+  const [dbLoading, setDbLoading] = useState(true);
+
+  // Load real athletes from Firestore, fall back to demo data
+  useEffect(() => {
+    fetchAthletes()
+      .then(dbAthletes => {
+        const mapped = dbAthletes.map(a => ({ ...a, id: a.uid || a.id }));
+        setAthletes(mapped.length > 0 ? [...mapped, ...ATHLETES] : ATHLETES);
+      })
+      .catch(() => setAthletes(ATHLETES))
+      .finally(() => setDbLoading(false));
+  }, []);
+
+  // Load scout's persistent data from Firestore
+  useEffect(() => {
+    if (!user) return;
+    fetchScoutData(user.uid).then(data => {
+      if (data.savedIds) setSavedIds(data.savedIds);
+      if (data.statuses) setStatuses(data.statuses);
+    }).catch(() => {});
+  }, [user]);
+
+  async function persist(newSaved, newStatuses) {
+    if (!user) return;
+    try { await saveScoutData(user.uid, { savedIds: newSaved, statuses: newStatuses }); } catch {}
+  }
 
   function handleStatusChange(id, val) {
-    setStatuses(s => ({ ...s, [id]: val }));
+    const next = { ...statuses, [id]: val };
+    setStatuses(next);
+    persist(savedIds, next);
   }
   function handleToggleSave(id) {
-    setSavedIds(s => s.includes(id) ? s.filter(x=>x!==id) : [...s, id]);
+    const next = savedIds.includes(id) ? savedIds.filter(x=>x!==id) : [...savedIds, id];
+    setSavedIds(next);
+    persist(next, statuses);
   }
   function handleViewAthlete(a) {
     setViewingAthlete(a);
@@ -910,9 +1097,8 @@ function ScoutDashboard() {
 
   const pageTitles = { dashboard:"Dashboard", discover:"Discover", saved:"Saved", messages:"Messages", settings:"Settings", profile: viewingAthlete?.name };
 
-  // Global search from topbar
   const searchFiltered = search
-    ? ATHLETES.filter(a => a.name.toLowerCase().includes(search.toLowerCase()) || a.sport.toLowerCase().includes(search.toLowerCase()) || a.position.toLowerCase().includes(search.toLowerCase()))
+    ? athletes.filter(a => a.name?.toLowerCase().includes(search.toLowerCase()) || a.sport?.toLowerCase().includes(search.toLowerCase()) || a.position?.toLowerCase().includes(search.toLowerCase()))
     : [];
 
   return (
@@ -1000,10 +1186,10 @@ function ScoutDashboard() {
         </div>
 
         {/* Page content */}
-        {page === "dashboard" && <PageDashboard athletes={ATHLETES} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} />}
-        {page === "discover"  && <PageDiscover  athletes={ATHLETES} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} />}
-        {page === "saved"     && <PageSaved     athletes={ATHLETES} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} />}
-        {page === "messages"  && <PageMessages  athletes={ATHLETES} />}
+        {page === "dashboard" && <PageDashboard athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} />}
+        {page === "discover"  && <PageDiscover  athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} />}
+        {page === "saved"     && <PageSaved     athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} />}
+        {page === "messages"  && <PageMessages  athletes={athletes} />}
         {page === "settings"  && <PageSettings  user={user} />}
         {page === "profile"   && viewingAthlete && (
           <AthleteProfile athlete={viewingAthlete} statuses={statuses} savedIds={savedIds}
@@ -1015,12 +1201,274 @@ function ScoutDashboard() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// APP ROUTER — handles auth state transitions
+// ATHLETE PROFILE CREATION FORM (multi-step)
+// ═══════════════════════════════════════════════════════════════
+const SPORTS = ["Soccer","Basketball","Track & Field","Football","Baseball","Volleyball","Swimming","Tennis","Lacrosse","Other"];
+const POSITIONS = {
+  Soccer: ["Goalkeeper","Center Back","Full Back","Defensive Mid","Central Mid","Attacking Mid","Winger","Striker"],
+  Basketball: ["Point Guard","Shooting Guard","Small Forward","Power Forward","Center"],
+  "Track & Field": ["Sprinter","Middle Distance","Long Distance","Jumper","Thrower","Multi-event"],
+  Football: ["QB","RB","WR","TE","OL","DL","LB","CB","Safety","K/P"],
+};
+
+function AthleteProfileSetup() {
+  const { user, logout } = useAuth();
+  const [step, setStep] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState("");
+
+  const [form, setForm] = useState({
+    name: user?.displayName || "",
+    sport: "", position: "", gradYear: new Date().getFullYear() + 1,
+    location: "", height: "", weight: "", foot: "Right", gpa: "",
+    bio: "",
+    stats: [
+      { label: "", value: "" }, { label: "", value: "" },
+      { label: "", value: "" }, { label: "", value: "" },
+    ],
+    highlights: [{ title: "", videoId: "" }, { title: "", videoId: "" }, { title: "", videoId: "" }],
+    email: user?.email || "", phone: "",
+  });
+
+  function set(key, val) { setForm(f => ({ ...f, [key]: val })); }
+
+  function extractVideoId(url) {
+    const m = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    return m ? m[1] : url;
+  }
+
+  async function handleSubmit() {
+    if (!form.name || !form.sport || !form.position) { setError("Please fill in name, sport, and position."); return; }
+    setSaving(true); setError("");
+    try {
+      await setDoc(doc(db, "athletes", user.uid), {
+        ...form,
+        highlights: form.highlights
+          .filter(h => h.title && (h.videoId || h.videoId === ""))
+          .map(h => ({ ...h, videoId: extractVideoId(h.videoId) })),
+        stats: form.stats.filter(s => s.label && s.value),
+        uid: user.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      // Reload page so role detection fires again
+      window.location.reload();
+    } catch (e) {
+      setError("Failed to save. Please try again.");
+      setSaving(false);
+    }
+  }
+
+  const steps = ["Basic Info", "Stats", "Highlights", "Contact"];
+  const positions = POSITIONS[form.sport] || [];
+
+  return (
+    <div style={{ minHeight:"100vh", background:"#080e1a", color:"#f0f6ff", fontFamily:"'Plus Jakarta Sans',sans-serif", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start", padding:"40px 20px 80px" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500&display=swap'); *{box-sizing:border-box;}`}</style>
+
+      {/* Header */}
+      <div style={{ width:"100%", maxWidth:580, marginBottom:32 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ width:36,height:36,borderRadius:10,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18 }}>⚽</div>
+            <span style={{ fontWeight:800, fontSize:16, letterSpacing:"-.02em" }}>ScoutLinkz</span>
+          </div>
+          <button onClick={logout} style={{ background:"none",border:"1px solid #162438",color:"#4d6a8a",borderRadius:8,padding:"6px 12px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>Sign out</button>
+        </div>
+        <h1 style={{ fontWeight:800, fontSize:26, letterSpacing:"-.03em", margin:"0 0 6px" }}>Build your athlete profile</h1>
+        <p style={{ color:"#4d6a8a", fontSize:14, margin:0, fontFamily:"'DM Sans',sans-serif" }}>Scouts will discover you based on this — make it count.</p>
+
+        {/* Step progress */}
+        <div style={{ display:"flex", gap:8, marginTop:24 }}>
+          {steps.map((label, i) => (
+            <div key={i} style={{ flex:1 }}>
+              <div style={{ height:3, borderRadius:2, background: i < step ? "linear-gradient(90deg,#6366f1,#818cf8)" : i === step-1 ? "linear-gradient(90deg,#6366f1,#818cf8)" : "#162438", marginBottom:6, transition:"background .3s" }} />
+              <div style={{ fontSize:11, fontWeight:600, color: i === step-1 ? "#c7d2fe" : i < step ? "#818cf8" : "#4d6a8a" }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Card */}
+      <div style={{ width:"100%", maxWidth:580, background:"rgba(10,21,37,.9)", border:"1px solid #162438", borderRadius:20, padding:32, boxShadow:"0 24px 60px rgba(0,0,0,.4)" }}>
+        {error && <div style={{ background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.25)",borderRadius:10,padding:"12px 16px",color:"#fca5a5",fontSize:14,marginBottom:20 }}>{error}</div>}
+
+        {/* ── STEP 1: Basic Info ── */}
+        {step === 1 && (
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <h2 style={{ fontWeight:800, fontSize:18, margin:"0 0 4px", letterSpacing:"-.02em" }}>Basic Info</h2>
+            {[
+              { label:"Full Name", key:"name", type:"text", placeholder:"Devin Smith" },
+              { label:"Location", key:"location", type:"text", placeholder:"Toronto, ON" },
+            ].map(f => (
+              <div key={f.key}>
+                <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>{f.label}</label>
+                <input value={form[f.key]} onChange={e => set(f.key, e.target.value)} type={f.type} placeholder={f.placeholder}
+                  style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:15,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }} />
+              </div>
+            ))}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+              <div>
+                <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Sport</label>
+                <select value={form.sport} onChange={e => { set("sport", e.target.value); set("position",""); }}
+                  style={{ width:"100%",background:"#0a1525",border:"1px solid #1e3352",borderRadius:10,color: form.sport?"#f0f6ff":"#4d6a8a",fontSize:14,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }}>
+                  <option value="">Select sport…</option>
+                  {SPORTS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Position</label>
+                <select value={form.position} onChange={e => set("position", e.target.value)}
+                  style={{ width:"100%",background:"#0a1525",border:"1px solid #1e3352",borderRadius:10,color:form.position?"#f0f6ff":"#4d6a8a",fontSize:14,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }}>
+                  <option value="">Select position…</option>
+                  {(positions.length ? positions : []).map(p => <option key={p} value={p}>{p}</option>)}
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Grad Year</label>
+                <select value={form.gradYear} onChange={e => set("gradYear", Number(e.target.value))}
+                  style={{ width:"100%",background:"#0a1525",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }}>
+                  {[2025,2026,2027,2028,2029].map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>GPA</label>
+                <input value={form.gpa} onChange={e => set("gpa", e.target.value)} placeholder="3.7" type="number" min="0" max="4" step="0.1"
+                  style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:15,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }} />
+              </div>
+              <div>
+                <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Height</label>
+                <input value={form.height} onChange={e => set("height", e.target.value)} placeholder='6&apos;1"'
+                  style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:15,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }} />
+              </div>
+              <div>
+                <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Weight (lbs)</label>
+                <input value={form.weight} onChange={e => set("weight", e.target.value)} placeholder="185"
+                  style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:15,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }} />
+              </div>
+            </div>
+            <div>
+              <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Bio</label>
+              <textarea value={form.bio} onChange={e => set("bio", e.target.value)} rows={3}
+                placeholder="Describe your game, strengths, and what makes you stand out…"
+                style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none",resize:"vertical",lineHeight:1.6 }} />
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 2: Stats ── */}
+        {step === 2 && (
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <div>
+              <h2 style={{ fontWeight:800, fontSize:18, margin:"0 0 4px", letterSpacing:"-.02em" }}>Key Stats</h2>
+              <p style={{ color:"#4d6a8a", fontSize:13, margin:0, fontFamily:"'DM Sans',sans-serif" }}>Add up to 4 stats that best represent your performance.</p>
+            </div>
+            {form.stats.map((stat, i) => (
+              <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                <div>
+                  <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Stat {i+1} Label</label>
+                  <input value={stat.label} onChange={e => { const s=[...form.stats]; s[i]={...s[i],label:e.target.value}; set("stats",s); }}
+                    placeholder={["Goals","Save %","PPG","100m Time"][i] || "e.g. Assists"}
+                    style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }} />
+                </div>
+                <div>
+                  <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Value</label>
+                  <input value={stat.value} onChange={e => { const s=[...form.stats]; s[i]={...s[i],value:e.target.value}; set("stats",s); }}
+                    placeholder={["12","78%","18.4","10.8s"][i] || "e.g. 9"}
+                    style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── STEP 3: Highlights ── */}
+        {step === 3 && (
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <div>
+              <h2 style={{ fontWeight:800, fontSize:18, margin:"0 0 4px", letterSpacing:"-.02em" }}>Highlight Videos</h2>
+              <p style={{ color:"#4d6a8a", fontSize:13, margin:0, fontFamily:"'DM Sans',sans-serif" }}>Paste YouTube URLs — scouts can watch directly from your profile.</p>
+            </div>
+            {form.highlights.map((h, i) => (
+              <div key={i} style={{ background:"rgba(255,255,255,.03)", border:"1px solid #162438", borderRadius:12, padding:16, display:"flex", flexDirection:"column", gap:10 }}>
+                <div style={{ fontWeight:700, fontSize:13, color:"#c7d2fe" }}>Clip {i+1} {i === 0 ? "(Main highlight reel)" : ""}</div>
+                <div>
+                  <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Title</label>
+                  <input value={h.title} onChange={e => { const hs=[...form.highlights]; hs[i]={...hs[i],title:e.target.value}; set("highlights",hs); }}
+                    placeholder="e.g. Top Saves 2025"
+                    style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }} />
+                </div>
+                <div>
+                  <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>YouTube URL or Video ID</label>
+                  <input value={h.videoId} onChange={e => { const hs=[...form.highlights]; hs[i]={...hs[i],videoId:e.target.value}; set("highlights",hs); }}
+                    placeholder="https://youtube.com/watch?v=... or video ID"
+                    style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── STEP 4: Contact ── */}
+        {step === 4 && (
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <div>
+              <h2 style={{ fontWeight:800, fontSize:18, margin:"0 0 4px", letterSpacing:"-.02em" }}>Contact Info</h2>
+              <p style={{ color:"#4d6a8a", fontSize:13, margin:0, fontFamily:"'DM Sans',sans-serif" }}>Scouts will reach out through these. You can update anytime.</p>
+            </div>
+            {[
+              { label:"Email", key:"email", type:"email", placeholder:"you@email.com" },
+              { label:"Phone", key:"phone", type:"tel",   placeholder:"(555) 123-4567" },
+            ].map(f => (
+              <div key={f.key}>
+                <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>{f.label}</label>
+                <input value={form[f.key]} onChange={e => set(f.key, e.target.value)} type={f.type} placeholder={f.placeholder}
+                  style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:15,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }} />
+              </div>
+            ))}
+            <div style={{ background:"rgba(99,102,241,.07)", border:"1px dashed rgba(99,102,241,.25)", borderRadius:12, padding:16, marginTop:4 }}>
+              <div style={{ fontWeight:700, fontSize:13, color:"#c7d2fe", marginBottom:4 }}>✓ Almost done!</div>
+              <div style={{ color:"#4d6a8a", fontSize:13, fontFamily:"'DM Sans',sans-serif", lineHeight:1.6 }}>
+                After submitting, your profile goes live in the Scout Discover feed. You can edit it anytime from your dashboard.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation buttons */}
+        <div style={{ display:"flex", justifyContent:"space-between", marginTop:24, gap:12 }}>
+          {step > 1 ? (
+            <button onClick={() => setStep(s => s-1)} style={{ padding:"11px 20px",borderRadius:10,border:"1px solid #162438",background:"transparent",color:"#4d6a8a",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit" }}>← Back</button>
+          ) : <div />}
+          {step < 4 ? (
+            <button onClick={() => setStep(s => s+1)} style={{ padding:"11px 24px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#4f46e5,#818cf8)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 4px 16px rgba(79,70,229,.3)" }}>
+              Continue →
+            </button>
+          ) : (
+            <button onClick={handleSubmit} disabled={saving} style={{ padding:"11px 24px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#4f46e5,#818cf8)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 4px 16px rgba(79,70,229,.3)",opacity:saving?.6:1 }}>
+              {saving ? "Publishing…" : "🚀 Publish Profile"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// APP ROUTER — role-aware routing
 // ═══════════════════════════════════════════════════════════════
 function AppRouter() {
-  const { user, loading } = useAuth();
+  const { user, role, loading } = useAuth();
+  const [athleteProfile, setAthleteProfile] = useState(undefined); // undefined=checking
 
-  if (loading) {
+  useEffect(() => {
+    if (!user || role !== "athlete") { setAthleteProfile(null); return; }
+    fetchAthlete(user.uid).then(setAthleteProfile);
+  }, [user, role]);
+
+  if (loading || (role === "athlete" && athleteProfile === undefined)) {
     return (
       <div style={s.loadingScreen}>
         <div style={s.loadingLogo}>⚽</div>
@@ -1034,7 +1482,10 @@ function AppRouter() {
     );
   }
 
-  return user ? <ScoutDashboard /> : <LoginPage />;
+  if (!user) return <LoginPage />;
+  if (role === "athlete" && !athleteProfile) return <AthleteProfileSetup />;
+  if (role === "athlete" && athleteProfile)  return <AthleteDashboard profile={athleteProfile} />;
+  return <ScoutDashboard />;
 }
 
 // ─── ROOT EXPORT ─────────────────────────────────────────────
