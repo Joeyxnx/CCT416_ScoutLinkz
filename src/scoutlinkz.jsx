@@ -297,11 +297,11 @@ const ATHLETES = [
 ];
 
 const STATUS_CONFIG = {
-  "none":       { label: "No Status",   color: "#98a7c2", bg: "rgba(152,167,194,.12)", border: "rgba(152,167,194,.25)" },
-  "interested": { label: "Interested",  color: "#4f46e5", bg: "rgba(79,70,229,.15)",   border: "rgba(79,70,229,.35)" },
-  "contacted":  { label: "Contacted",   color: "#f59e0b", bg: "rgba(245,158,11,.15)",  border: "rgba(245,158,11,.35)" },
-  "in-review":  { label: "In Review",   color: "#06b6d4", bg: "rgba(6,182,212,.15)",   border: "rgba(6,182,212,.35)" },
-  "passed":     { label: "Passed",      color: "#ef4444", bg: "rgba(239,68,68,.15)",   border: "rgba(239,68,68,.35)" },
+  "none":       { label: "No Status",   color: "#64748b", bg: "rgba(100,116,139,.1)",  border: "rgba(100,116,139,.2)" },
+  "interested": { label: "Interested",  color: "#818cf8", bg: "rgba(129,140,248,.1)",  border: "rgba(129,140,248,.25)" },
+  "contacted":  { label: "Contacted",   color: "#fbbf24", bg: "rgba(251,191,36,.1)",   border: "rgba(251,191,36,.25)" },
+  "in-review":  { label: "In Review",   color: "#34d399", bg: "rgba(52,211,153,.1)",   border: "rgba(52,211,153,.25)" },
+  "passed":     { label: "Passed",      color: "#f87171", bg: "rgba(248,113,113,.1)",  border: "rgba(248,113,113,.25)" },
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -334,10 +334,10 @@ function StatusDropdown({ status, onChange }) {
         {cfg.label} <span style={{ fontSize:9,opacity:.7 }}>{open?"▲":"▼"}</span>
       </button>
       {open && (
-        <div style={{ position:"absolute",top:"calc(100% + 6px)",right:0,background:"#0f172a",border:"1px solid #22304a",borderRadius:12,overflow:"hidden",minWidth:150,boxShadow:"0 12px 40px rgba(0,0,0,.5)",zIndex:50 }}>
+        <div style={{ position:"absolute",top:"calc(100% + 6px)",right:0,background:"#0a1525",border:"1px solid #22304a",borderRadius:12,overflow:"hidden",minWidth:150,boxShadow:"0 12px 40px rgba(0,0,0,.5)",zIndex:50 }}>
           {Object.entries(STATUS_CONFIG).map(([key, c]) => (
             <button key={key} onClick={() => { onChange(key); setOpen(false); }}
-              style={{ display:"flex",alignItems:"center",gap:8,width:"100%",padding:"9px 14px",border:"none",background:key===status?c.bg:"transparent",color:key===status?c.color:"#e6edf7",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left" }}>
+              style={{ display:"flex",alignItems:"center",gap:8,width:"100%",padding:"9px 14px",border:"none",background:key===status?c.bg:"transparent",color:key===status?c.color:"#f0f6ff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"left" }}>
               <span style={{ width:6,height:6,borderRadius:"50%",background:c.color }} />
               {c.label}
             </button>
@@ -375,7 +375,7 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
           <div className="lb-box" onClick={e => e.stopPropagation()}>
             <div className="lb-head">
               <span style={{ fontWeight:800,fontSize:15 }}>{lightbox.title}</span>
-              <button onClick={() => setLightbox(null)} style={{ background:"rgba(255,255,255,.07)",border:"1px solid #22304a",color:"#e6edf7",width:32,height:32,borderRadius:10,cursor:"pointer",fontSize:14 }}>✕</button>
+              <button onClick={() => setLightbox(null)} style={{ background:"rgba(255,255,255,.07)",border:"1px solid #22304a",color:"#f0f6ff",width:32,height:32,borderRadius:10,cursor:"pointer",fontSize:14 }}>✕</button>
             </div>
             <div className="lb-video">
               <iframe src={`https://www.youtube.com/embed/${lightbox.videoId}?autoplay=1&rel=0`} title={lightbox.title} frameBorder="0" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowFullScreen />
@@ -386,13 +386,13 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
 
       {/* Back + actions bar */}
       <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"24px 0 20px" }}>
-        <button onClick={onBack} style={{ display:"flex",alignItems:"center",gap:8,background:"none",border:"1px solid #22304a",color:"#98a7c2",borderRadius:10,padding:"8px 14px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
+        <button onClick={onBack} style={{ display:"flex",alignItems:"center",gap:8,background:"none",border:"1px solid #22304a",color:"#4d6a8a",borderRadius:10,padding:"8px 14px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
           ← Back
         </button>
         <div style={{ display:"flex",gap:10,alignItems:"center" }}>
           <StatusDropdown status={status} onChange={v => onStatusChange(athlete.id, v)} />
           <button onClick={() => onToggleSave(athlete.id)}
-            style={{ display:"flex",alignItems:"center",gap:7,padding:"8px 14px",borderRadius:10,border:`1px solid ${saved?"rgba(245,158,11,.4)":"#22304a"}`,background:saved?"rgba(245,158,11,.12)":"rgba(255,255,255,.04)",color:saved?"#fbbf24":"#98a7c2",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit" }}>
+            style={{ display:"flex",alignItems:"center",gap:7,padding:"8px 14px",borderRadius:10,border:`1px solid ${saved?"rgba(245,158,11,.4)":"#162438"}`,background:saved?"rgba(245,158,11,.12)":"rgba(255,255,255,.04)",color:saved?"#fbbf24":"#4d6a8a",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit" }}>
             {saved ? "★ Saved" : "☆ Save"}
           </button>
           <a href={`mailto:${athlete.email}`}
@@ -403,17 +403,17 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
       </div>
 
       {/* Hero card */}
-      <div style={{ background:"rgba(15,23,42,.8)",border:"1px solid #22304a",borderRadius:20,padding:24,marginBottom:16 }}>
+      <div style={{ background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:20,padding:24,marginBottom:16 }}>
         <div style={{ display:"flex",gap:18,alignItems:"flex-start",flexWrap:"wrap" }}>
-          <div style={{ width:72,height:72,borderRadius:20,background:"rgba(79,70,229,.2)",border:"1px solid rgba(79,70,229,.35)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:24,flexShrink:0 }}>
+          <div style={{ width:72,height:72,borderRadius:20,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:24,flexShrink:0 }}>
             {athlete.name.split(" ").map(x=>x[0]).join("")}
           </div>
           <div style={{ flex:1 }}>
             <div style={{ display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:6 }}>
-              <span style={{ fontWeight:900,fontSize:22 }}>{athlete.name}</span>
+              <span style={{ fontWeight:800,fontSize:22 }}>{athlete.name}</span>
               <StatusBadge status={status} />
             </div>
-            <div style={{ color:"#98a7c2",fontSize:14,marginBottom:12 }}>{athlete.sport} · {athlete.position} · Grad {athlete.gradYear} · {athlete.location}</div>
+            <div style={{ color:"#4d6a8a",fontSize:14,marginBottom:12 }}>{athlete.sport} · {athlete.position} · Grad {athlete.gradYear} · {athlete.location}</div>
             <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
               {[athlete.sport, `GPA ${athlete.gpa}`, athlete.height, athlete.weight, `${athlete.foot} foot`].map(t => (
                 <span key={t} style={{ fontSize:12,fontWeight:700,padding:"4px 10px",borderRadius:999,border:"1px solid #22304a",background:"rgba(255,255,255,.05)" }}>{t}</span>
@@ -421,7 +421,7 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
             </div>
           </div>
         </div>
-        <p style={{ marginTop:16,lineHeight:1.6,color:"#e6edf7",opacity:.9 }}>{athlete.bio}</p>
+        <p style={{ marginTop:16,lineHeight:1.6,color:"#f0f6ff",opacity:.9 }}>{athlete.bio}</p>
         <div style={{ display:"flex",gap:8,marginTop:12,flexWrap:"wrap" }}>
           {athlete.tags.map(t => <span key={t} style={{ fontSize:12,padding:"5px 10px",borderRadius:999,background:"rgba(255,255,255,.06)",border:"1px solid #22304a" }}>{t}</span>)}
         </div>
@@ -429,27 +429,27 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
 
       <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:16 }}>
         {/* Stats */}
-        <div style={{ background:"rgba(15,23,42,.8)",border:"1px solid #22304a",borderRadius:18,padding:20 }}>
+        <div style={{ background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:18,padding:20 }}>
           <div style={{ fontWeight:800,fontSize:15,marginBottom:14 }}>Key Stats</div>
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
             {athlete.stats.map(s => (
               <div key={s.label} style={{ background:"rgba(255,255,255,.05)",border:"1px solid #22304a",borderRadius:12,padding:12 }}>
-                <div style={{ fontWeight:900,fontSize:20 }}>{s.value}</div>
-                <div style={{ color:"#98a7c2",fontSize:12,marginTop:3 }}>{s.label}</div>
+                <div style={{ fontWeight:800,fontSize:20 }}>{s.value}</div>
+                <div style={{ color:"#4d6a8a",fontSize:12,marginTop:3 }}>{s.label}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Contact */}
-        <div style={{ background:"rgba(15,23,42,.8)",border:"1px solid #22304a",borderRadius:18,padding:20,display:"flex",flexDirection:"column",gap:14 }}>
+        <div style={{ background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:18,padding:20,display:"flex",flexDirection:"column",gap:14 }}>
           <div style={{ fontWeight:800,fontSize:15 }}>Contact</div>
           <div>
-            <div style={{ color:"#98a7c2",fontSize:13 }}>Email</div>
+            <div style={{ color:"#4d6a8a",fontSize:13 }}>Email</div>
             <div style={{ fontWeight:700,marginTop:3 }}>{athlete.email}</div>
           </div>
           <div>
-            <div style={{ color:"#98a7c2",fontSize:13 }}>Phone</div>
+            <div style={{ color:"#4d6a8a",fontSize:13 }}>Phone</div>
             <div style={{ fontWeight:700,marginTop:3 }}>{athlete.phone}</div>
           </div>
           <a href={`mailto:${athlete.email}`} style={{ display:"flex",alignItems:"center",justifyContent:"center",padding:"10px 14px",borderRadius:12,background:"rgba(79,70,229,.9)",border:"none",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",textDecoration:"none" }}>
@@ -459,7 +459,7 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
 
         {/* Highlights */}
         {athlete.highlights.length > 0 && (
-          <div style={{ gridColumn:"span 2",background:"rgba(15,23,42,.8)",border:"1px solid #22304a",borderRadius:18,padding:20 }}>
+          <div style={{ gridColumn:"span 2",background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:18,padding:20 }}>
             <div style={{ fontWeight:800,fontSize:15,marginBottom:14 }}>Highlight Reel</div>
             <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12 }}>
               {athlete.highlights.map((h, i) => (
@@ -498,23 +498,23 @@ function PageDashboard({ athletes, statuses, savedIds, onViewAthlete }) {
   return (
     <div style={{ padding:"0 32px 40px" }}>
       <div style={{ padding:"28px 0 20px" }}>
-        <h2 style={{ fontWeight:900,fontSize:24,margin:0 }}>Dashboard</h2>
-        <p style={{ color:"#98a7c2",fontSize:14,marginTop:4 }}>Your scouting overview at a glance</p>
+        <h2 style={{ fontWeight:800,fontSize:24,margin:0 }}>Dashboard</h2>
+        <p style={{ color:"#4d6a8a",fontSize:14,marginTop:4 }}>Your scouting overview at a glance</p>
       </div>
 
       {/* Stats */}
       <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:24 }}>
         {stats.map(s => (
-          <div key={s.label} style={{ background:"rgba(15,23,42,.8)",border:"1px solid #22304a",borderRadius:18,padding:"18px 20px" }}>
+          <div key={s.label} style={{ background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:18,padding:"18px 20px" }}>
             <div style={{ fontSize:22,marginBottom:8 }}>{s.icon}</div>
-            <div style={{ fontWeight:900,fontSize:28,color:s.color }}>{s.value}</div>
-            <div style={{ color:"#98a7c2",fontSize:13,marginTop:4 }}>{s.label}</div>
+            <div style={{ fontWeight:800,fontSize:28,color:s.color }}>{s.value}</div>
+            <div style={{ color:"#4d6a8a",fontSize:13,marginTop:4 }}>{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Recent athletes */}
-      <div style={{ background:"rgba(15,23,42,.8)",border:"1px solid #22304a",borderRadius:18,padding:20,marginBottom:16 }}>
+      <div style={{ background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:18,padding:20,marginBottom:16 }}>
         <div style={{ fontWeight:800,fontSize:16,marginBottom:16 }}>Recent Athletes</div>
         <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
           {recent.map(a => {
@@ -522,15 +522,15 @@ function PageDashboard({ athletes, statuses, savedIds, onViewAthlete }) {
             const cfg = STATUS_CONFIG[status];
             return (
               <div key={a.id} style={{ display:"flex",alignItems:"center",gap:14,padding:"12px 14px",background:"rgba(255,255,255,.03)",borderRadius:12,border:"1px solid #1a2740" }}>
-                <div style={{ width:38,height:38,borderRadius:10,background:"rgba(79,70,229,.15)",border:"1px solid rgba(79,70,229,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:13,flexShrink:0 }}>
+                <div style={{ width:38,height:38,borderRadius:10,background:"rgba(99,102,241,.12)",border:"1px solid rgba(99,102,241,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:13,flexShrink:0 }}>
                   {a.name.split(" ").map(x=>x[0]).join("")}
                 </div>
                 <div style={{ flex:1 }}>
                   <div style={{ fontWeight:800,fontSize:14 }}>{a.name}</div>
-                  <div style={{ color:"#98a7c2",fontSize:12,marginTop:2 }}>{a.sport} · {a.position}</div>
+                  <div style={{ color:"#4d6a8a",fontSize:12,marginTop:2 }}>{a.sport} · {a.position}</div>
                 </div>
                 <StatusBadge status={status} />
-                <button onClick={() => onViewAthlete(a)} style={{ background:"rgba(79,70,229,.12)",border:"1px solid rgba(79,70,229,.3)",color:"#a5b4fc",borderRadius:9,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
+                <button onClick={() => onViewAthlete(a)} style={{ background:"rgba(99,102,241,.1)",border:"1px solid rgba(99,102,241,.25)",color:"#c7d2fe",borderRadius:9,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
                   View Profile →
                 </button>
               </div>
@@ -540,11 +540,11 @@ function PageDashboard({ athletes, statuses, savedIds, onViewAthlete }) {
       </div>
 
       {/* Quick tip */}
-      <div style={{ background:"rgba(79,70,229,.06)",border:"1px dashed rgba(79,70,229,.3)",borderRadius:16,padding:"18px 22px",display:"flex",alignItems:"center",gap:16 }}>
+      <div style={{ background:"rgba(79,70,229,.06)",border:"1px dashed rgba(99,102,241,.25)",borderRadius:16,padding:"18px 22px",display:"flex",alignItems:"center",gap:16 }}>
         <span style={{ fontSize:28 }}>🚀</span>
         <div>
-          <div style={{ fontWeight:800,fontSize:14,color:"#a5b4fc" }}>Discover more athletes</div>
-          <div style={{ color:"#98a7c2",fontSize:13,marginTop:3 }}>Head to the Discover tab to browse and filter athletes by sport, position, GPA, and location.</div>
+          <div style={{ fontWeight:800,fontSize:14,color:"#c7d2fe" }}>Discover more athletes</div>
+          <div style={{ color:"#4d6a8a",fontSize:13,marginTop:3 }}>Head to the Discover tab to browse and filter athletes by sport, position, GPA, and location.</div>
         </div>
       </div>
     </div>
@@ -581,8 +581,8 @@ function PageDiscover({ athletes, statuses, savedIds, onViewAthlete, onToggleSav
   return (
     <div style={{ padding:"0 32px 40px" }}>
       <div style={{ padding:"28px 0 20px" }}>
-        <h2 style={{ fontWeight:900,fontSize:24,margin:0 }}>Discover Athletes</h2>
-        <p style={{ color:"#98a7c2",fontSize:14,marginTop:4 }}>{filtered.length} athletes found</p>
+        <h2 style={{ fontWeight:800,fontSize:24,margin:0 }}>Discover Athletes</h2>
+        <p style={{ color:"#4d6a8a",fontSize:14,marginTop:4 }}>{filtered.length} athletes found</p>
       </div>
 
       {/* Filters */}
@@ -590,19 +590,19 @@ function PageDiscover({ athletes, statuses, savedIds, onViewAthlete, onToggleSav
         <div style={{ display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.05)",border:"1px solid #22304a",borderRadius:11,padding:"8px 14px",flex:1,minWidth:200 }}>
           <span style={{ opacity:.5 }}>🔍</span>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, sport, position, location…"
-            style={{ background:"none",border:"none",outline:"none",color:"#e6edf7",fontSize:14,fontFamily:"inherit",width:"100%" }} />
-          {search && <button onClick={()=>setSearch("")} style={{ background:"none",border:"none",color:"#98a7c2",cursor:"pointer",fontSize:16,padding:0 }}>×</button>}
+            style={{ background:"none",border:"none",outline:"none",color:"#f0f6ff",fontSize:14,fontFamily:"inherit",width:"100%" }} />
+          {search && <button onClick={()=>setSearch("")} style={{ background:"none",border:"none",color:"#4d6a8a",cursor:"pointer",fontSize:16,padding:0 }}>×</button>}
         </div>
         <select value={sportFilter} onChange={e=>setSport(e.target.value)}
-          style={{ background:"#0f172a",border:"1px solid #22304a",color:"#e6edf7",borderRadius:10,padding:"9px 12px",fontSize:13,fontFamily:"inherit",fontWeight:700,cursor:"pointer" }}>
+          style={{ background:"#0a1525",border:"1px solid #22304a",color:"#f0f6ff",borderRadius:10,padding:"9px 12px",fontSize:13,fontFamily:"inherit",fontWeight:700,cursor:"pointer" }}>
           {sports.map(s => <option key={s} value={s}>{s === "All" ? "All Sports" : s}</option>)}
         </select>
         <select value={statusFilter} onChange={e=>setStatusF(e.target.value)}
-          style={{ background:"#0f172a",border:"1px solid #22304a",color:"#e6edf7",borderRadius:10,padding:"9px 12px",fontSize:13,fontFamily:"inherit",fontWeight:700,cursor:"pointer" }}>
+          style={{ background:"#0a1525",border:"1px solid #22304a",color:"#f0f6ff",borderRadius:10,padding:"9px 12px",fontSize:13,fontFamily:"inherit",fontWeight:700,cursor:"pointer" }}>
           {statuses_list.map(s => <option key={s} value={s}>{s === "All" ? "All Statuses" : STATUS_CONFIG[s]?.label}</option>)}
         </select>
         <select value={sortBy} onChange={e=>setSort(e.target.value)}
-          style={{ background:"#0f172a",border:"1px solid #22304a",color:"#e6edf7",borderRadius:10,padding:"9px 12px",fontSize:13,fontFamily:"inherit",fontWeight:700,cursor:"pointer" }}>
+          style={{ background:"#0a1525",border:"1px solid #22304a",color:"#f0f6ff",borderRadius:10,padding:"9px 12px",fontSize:13,fontFamily:"inherit",fontWeight:700,cursor:"pointer" }}>
           <option value="name">Sort: Name</option>
           <option value="gpa">Sort: GPA</option>
           <option value="grad">Sort: Grad Year</option>
@@ -611,7 +611,7 @@ function PageDiscover({ athletes, statuses, savedIds, onViewAthlete, onToggleSav
 
       {/* Grid */}
       {filtered.length === 0 ? (
-        <div style={{ textAlign:"center",padding:"60px 0",color:"#98a7c2" }}>
+        <div style={{ textAlign:"center",padding:"60px 0",color:"#4d6a8a" }}>
           <div style={{ fontSize:40,marginBottom:12 }}>🔍</div>
           <div style={{ fontWeight:700 }}>No athletes match your filters</div>
         </div>
@@ -621,16 +621,16 @@ function PageDiscover({ athletes, statuses, savedIds, onViewAthlete, onToggleSav
             const st = statuses[a.id] || "none";
             const isSaved = savedIds.includes(a.id);
             return (
-              <div key={a.id} style={{ background:"rgba(15,23,42,.85)",border:"1px solid #22304a",borderRadius:18,padding:18,display:"flex",flexDirection:"column",gap:12,transition:"border-color .2s" }}
-                onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(79,70,229,.4)"}
-                onMouseLeave={e=>e.currentTarget.style.borderColor="#22304a"}>
+              <div key={a.id} style={{ background:"rgba(10,21,37,.9)",border:"1px solid #22304a",borderRadius:18,padding:18,display:"flex",flexDirection:"column",gap:12,transition:"border-color .2s" }}
+                onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(99,102,241,.35)"}
+                onMouseLeave={e=>e.currentTarget.style.borderColor="#162438"}>
                 <div style={{ display:"flex",alignItems:"flex-start",gap:12 }}>
-                  <div style={{ width:46,height:46,borderRadius:14,background:"rgba(79,70,229,.15)",border:"1px solid rgba(79,70,229,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:16,flexShrink:0 }}>
+                  <div style={{ width:46,height:46,borderRadius:14,background:"rgba(99,102,241,.12)",border:"1px solid rgba(99,102,241,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:16,flexShrink:0 }}>
                     {a.name.split(" ").map(x=>x[0]).join("")}
                   </div>
                   <div style={{ flex:1,minWidth:0 }}>
                     <div style={{ fontWeight:800,fontSize:15 }}>{a.name}</div>
-                    <div style={{ color:"#98a7c2",fontSize:12,marginTop:2 }}>{a.sport} · {a.position}</div>
+                    <div style={{ color:"#4d6a8a",fontSize:12,marginTop:2 }}>{a.sport} · {a.position}</div>
                   </div>
                   <button onClick={() => onToggleSave(a.id)}
                     style={{ background:"none",border:"none",fontSize:18,cursor:"pointer",color:isSaved?"#fbbf24":"#334155",flexShrink:0 }}>
@@ -640,16 +640,16 @@ function PageDiscover({ athletes, statuses, savedIds, onViewAthlete, onToggleSav
 
                 <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
                   {[`GPA ${a.gpa}`, a.height, `Grad ${a.gradYear}`].map(t => (
-                    <span key={t} style={{ fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:999,border:"1px solid #22304a",background:"rgba(255,255,255,.04)",color:"#98a7c2" }}>{t}</span>
+                    <span key={t} style={{ fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:999,border:"1px solid #22304a",background:"rgba(255,255,255,.04)",color:"#4d6a8a" }}>{t}</span>
                   ))}
                 </div>
 
-                <p style={{ color:"#98a7c2",fontSize:12,lineHeight:1.5,margin:0,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden" }}>{a.bio}</p>
+                <p style={{ color:"#4d6a8a",fontSize:12,lineHeight:1.5,margin:0,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden" }}>{a.bio}</p>
 
                 <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:"auto" }}>
                   <StatusBadge status={st} />
                   <button onClick={() => onViewAthlete(a)}
-                    style={{ background:"rgba(79,70,229,.12)",border:"1px solid rgba(79,70,229,.3)",color:"#a5b4fc",borderRadius:9,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
+                    style={{ background:"rgba(99,102,241,.1)",border:"1px solid rgba(99,102,241,.25)",color:"#c7d2fe",borderRadius:9,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
                     View Profile →
                   </button>
                 </div>
@@ -670,11 +670,11 @@ function PageSaved({ athletes, statuses, savedIds, onViewAthlete, onToggleSave }
   return (
     <div style={{ padding:"0 32px 40px" }}>
       <div style={{ padding:"28px 0 20px" }}>
-        <h2 style={{ fontWeight:900,fontSize:24,margin:0 }}>Saved Athletes</h2>
-        <p style={{ color:"#98a7c2",fontSize:14,marginTop:4 }}>{saved.length} athlete{saved.length!==1?"s":""} saved</p>
+        <h2 style={{ fontWeight:800,fontSize:24,margin:0 }}>Saved Athletes</h2>
+        <p style={{ color:"#4d6a8a",fontSize:14,marginTop:4 }}>{saved.length} athlete{saved.length!==1?"s":""} saved</p>
       </div>
       {saved.length === 0 ? (
-        <div style={{ textAlign:"center",padding:"80px 0",color:"#98a7c2" }}>
+        <div style={{ textAlign:"center",padding:"80px 0",color:"#4d6a8a" }}>
           <div style={{ fontSize:48,marginBottom:16 }}>☆</div>
           <div style={{ fontWeight:700,fontSize:16 }}>No saved athletes yet</div>
           <div style={{ marginTop:8,fontSize:14 }}>Star athletes in Discover to save them here</div>
@@ -684,13 +684,13 @@ function PageSaved({ athletes, statuses, savedIds, onViewAthlete, onToggleSave }
           {saved.map(a => {
             const st = statuses[a.id] || "none";
             return (
-              <div key={a.id} style={{ display:"flex",alignItems:"center",gap:16,background:"rgba(15,23,42,.85)",border:"1px solid #22304a",borderRadius:16,padding:"16px 20px" }}>
-                <div style={{ width:46,height:46,borderRadius:14,background:"rgba(79,70,229,.15)",border:"1px solid rgba(79,70,229,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:16,flexShrink:0 }}>
+              <div key={a.id} style={{ display:"flex",alignItems:"center",gap:16,background:"rgba(10,21,37,.9)",border:"1px solid #22304a",borderRadius:16,padding:"16px 20px" }}>
+                <div style={{ width:46,height:46,borderRadius:14,background:"rgba(99,102,241,.12)",border:"1px solid rgba(99,102,241,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:16,flexShrink:0 }}>
                   {a.name.split(" ").map(x=>x[0]).join("")}
                 </div>
                 <div style={{ flex:1 }}>
                   <div style={{ fontWeight:800,fontSize:15 }}>{a.name}</div>
-                  <div style={{ color:"#98a7c2",fontSize:13,marginTop:2 }}>{a.sport} · {a.position} · {a.location}</div>
+                  <div style={{ color:"#4d6a8a",fontSize:13,marginTop:2 }}>{a.sport} · {a.position} · {a.location}</div>
                 </div>
                 <StatusBadge status={st} />
                 <button onClick={() => onToggleSave(a.id)}
@@ -698,7 +698,7 @@ function PageSaved({ athletes, statuses, savedIds, onViewAthlete, onToggleSave }
                   ★ Remove
                 </button>
                 <button onClick={() => onViewAthlete(a)}
-                  style={{ background:"rgba(79,70,229,.12)",border:"1px solid rgba(79,70,229,.3)",color:"#a5b4fc",borderRadius:9,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
+                  style={{ background:"rgba(99,102,241,.1)",border:"1px solid rgba(99,102,241,.25)",color:"#c7d2fe",borderRadius:9,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
                   View Profile →
                 </button>
               </div>
@@ -737,13 +737,13 @@ function PageMessages({ athletes }) {
         <div style={{ fontWeight:800,fontSize:16,marginBottom:8 }}>Messages</div>
         {athletes.slice(0,5).map(a => (
           <div key={a.id} onClick={() => setSelected(a)}
-            style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,cursor:"pointer",background:selected?.id===a.id?"rgba(79,70,229,.15)":"rgba(255,255,255,.03)",border:`1px solid ${selected?.id===a.id?"rgba(79,70,229,.3)":"#1a2740"}`,transition:"all .15s" }}>
-            <div style={{ width:34,height:34,borderRadius:10,background:"rgba(79,70,229,.15)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:12,flexShrink:0 }}>
+            style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,cursor:"pointer",background:selected?.id===a.id?"rgba(99,102,241,.12)":"rgba(255,255,255,.03)",border:`1px solid ${selected?.id===a.id?"rgba(99,102,241,.25)":"#0f1e30"}`,transition:"all .15s" }}>
+            <div style={{ width:34,height:34,borderRadius:10,background:"rgba(99,102,241,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:12,flexShrink:0 }}>
               {a.name.split(" ").map(x=>x[0]).join("")}
             </div>
             <div style={{ minWidth:0 }}>
               <div style={{ fontWeight:700,fontSize:13 }}>{a.name}</div>
-              <div style={{ color:"#98a7c2",fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+              <div style={{ color:"#4d6a8a",fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
                 {(threads[a.id]||[]).length > 0 ? threads[a.id].slice(-1)[0].text.slice(0,30)+"…" : "No messages yet"}
               </div>
             </div>
@@ -752,22 +752,22 @@ function PageMessages({ athletes }) {
       </div>
 
       {/* Chat area */}
-      <div style={{ flex:1,display:"flex",flexDirection:"column",background:"rgba(15,23,42,.8)",border:"1px solid #22304a",borderRadius:18,overflow:"hidden" }}>
+      <div style={{ flex:1,display:"flex",flexDirection:"column",background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:18,overflow:"hidden" }}>
         <div style={{ padding:"14px 18px",borderBottom:"1px solid #22304a",display:"flex",alignItems:"center",gap:12 }}>
-          <div style={{ width:36,height:36,borderRadius:10,background:"rgba(79,70,229,.15)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:13 }}>
+          <div style={{ width:36,height:36,borderRadius:10,background:"rgba(99,102,241,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:13 }}>
             {selected?.name.split(" ").map(x=>x[0]).join("")}
           </div>
           <div>
             <div style={{ fontWeight:800 }}>{selected?.name}</div>
-            <div style={{ color:"#98a7c2",fontSize:12 }}>{selected?.sport} · {selected?.position}</div>
+            <div style={{ color:"#4d6a8a",fontSize:12 }}>{selected?.sport} · {selected?.position}</div>
           </div>
         </div>
         <div style={{ flex:1,padding:16,display:"flex",flexDirection:"column",gap:10,overflowY:"auto",justifyContent:msgs.length===0?"center":"flex-end" }}>
-          {msgs.length === 0 && <div style={{ textAlign:"center",color:"#98a7c2",fontSize:14 }}>No messages yet. Say hello!</div>}
+          {msgs.length === 0 && <div style={{ textAlign:"center",color:"#4d6a8a",fontSize:14 }}>No messages yet. Say hello!</div>}
           {msgs.map((m, i) => (
-            <div key={i} style={{ alignSelf:"flex-end",maxWidth:"70%",background:"rgba(79,70,229,.2)",border:"1px solid rgba(79,70,229,.3)",borderRadius:"14px 14px 4px 14px",padding:"10px 14px" }}>
+            <div key={i} style={{ alignSelf:"flex-end",maxWidth:"70%",background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.25)",borderRadius:"14px 14px 4px 14px",padding:"10px 14px" }}>
               <div style={{ fontSize:14,lineHeight:1.5 }}>{m.text}</div>
-              <div style={{ color:"#98a7c2",fontSize:11,marginTop:4,textAlign:"right" }}>{m.time}</div>
+              <div style={{ color:"#4d6a8a",fontSize:11,marginTop:4,textAlign:"right" }}>{m.time}</div>
             </div>
           ))}
         </div>
@@ -775,7 +775,7 @@ function PageMessages({ athletes }) {
           <input value={input} onChange={e=>setInput(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&send()}
             placeholder={`Message ${selected?.name}…`}
-            style={{ flex:1,background:"rgba(255,255,255,.05)",border:"1px solid #22304a",borderRadius:10,color:"#e6edf7",fontSize:14,padding:"10px 14px",fontFamily:"inherit",outline:"none" }} />
+            style={{ flex:1,background:"rgba(255,255,255,.05)",border:"1px solid #22304a",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"10px 14px",fontFamily:"inherit",outline:"none" }} />
           <button onClick={send}
             style={{ background:"linear-gradient(135deg,#4f46e5,#6366f1)",border:"none",color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit" }}>
             Send
@@ -811,8 +811,8 @@ function PageSettings({ user }) {
   return (
     <div style={{ padding:"0 32px 40px",maxWidth:640 }}>
       <div style={{ padding:"28px 0 20px" }}>
-        <h2 style={{ fontWeight:900,fontSize:24,margin:0 }}>Settings</h2>
-        <p style={{ color:"#98a7c2",fontSize:14,marginTop:4 }}>Manage your account and preferences</p>
+        <h2 style={{ fontWeight:800,fontSize:24,margin:0 }}>Settings</h2>
+        <p style={{ color:"#4d6a8a",fontSize:14,marginTop:4 }}>Manage your account and preferences</p>
       </div>
 
       {saved && (
@@ -822,23 +822,23 @@ function PageSettings({ user }) {
       )}
 
       {/* Profile section */}
-      <div style={{ background:"rgba(15,23,42,.8)",border:"1px solid #22304a",borderRadius:18,padding:24,marginBottom:16 }}>
+      <div style={{ background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:18,padding:24,marginBottom:16 }}>
         <div style={{ fontWeight:800,fontSize:15,marginBottom:18 }}>Profile</div>
         <form onSubmit={save} style={{ display:"flex",flexDirection:"column",gap:14 }}>
           <div>
-            <label style={{ color:"#98a7c2",fontSize:13,fontWeight:700,display:"block",marginBottom:6 }}>Full Name</label>
+            <label style={{ color:"#4d6a8a",fontSize:13,fontWeight:700,display:"block",marginBottom:6 }}>Full Name</label>
             <input value={name} onChange={e=>setName(e.target.value)}
-              style={{ width:"100%",background:"rgba(255,255,255,.04)",border:"1px solid #22304a",borderRadius:10,color:"#e6edf7",fontSize:14,padding:"10px 14px",fontFamily:"inherit",outline:"none",boxSizing:"border-box" }} />
+              style={{ width:"100%",background:"rgba(255,255,255,.04)",border:"1px solid #22304a",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"10px 14px",fontFamily:"inherit",outline:"none",boxSizing:"border-box" }} />
           </div>
           <div>
-            <label style={{ color:"#98a7c2",fontSize:13,fontWeight:700,display:"block",marginBottom:6 }}>Email</label>
+            <label style={{ color:"#4d6a8a",fontSize:13,fontWeight:700,display:"block",marginBottom:6 }}>Email</label>
             <input value={email} onChange={e=>setEmail(e.target.value)} type="email"
-              style={{ width:"100%",background:"rgba(255,255,255,.04)",border:"1px solid #22304a",borderRadius:10,color:"#e6edf7",fontSize:14,padding:"10px 14px",fontFamily:"inherit",outline:"none",boxSizing:"border-box" }} />
+              style={{ width:"100%",background:"rgba(255,255,255,.04)",border:"1px solid #22304a",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"10px 14px",fontFamily:"inherit",outline:"none",boxSizing:"border-box" }} />
           </div>
           <div>
-            <label style={{ color:"#98a7c2",fontSize:13,fontWeight:700,display:"block",marginBottom:6 }}>Organization / Team</label>
+            <label style={{ color:"#4d6a8a",fontSize:13,fontWeight:700,display:"block",marginBottom:6 }}>Organization / Team</label>
             <input placeholder="e.g. Toronto FC Academy"
-              style={{ width:"100%",background:"rgba(255,255,255,.04)",border:"1px solid #22304a",borderRadius:10,color:"#e6edf7",fontSize:14,padding:"10px 14px",fontFamily:"inherit",outline:"none",boxSizing:"border-box" }} />
+              style={{ width:"100%",background:"rgba(255,255,255,.04)",border:"1px solid #22304a",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"10px 14px",fontFamily:"inherit",outline:"none",boxSizing:"border-box" }} />
           </div>
           <button type="submit"
             style={{ alignSelf:"flex-start",background:"linear-gradient(135deg,#4f46e5,#6366f1)",border:"none",color:"#fff",borderRadius:10,padding:"10px 20px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit" }}>
@@ -848,14 +848,14 @@ function PageSettings({ user }) {
       </div>
 
       {/* Notifications */}
-      <div style={{ background:"rgba(15,23,42,.8)",border:"1px solid #22304a",borderRadius:18,padding:24 }}>
+      <div style={{ background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:18,padding:24 }}>
         <div style={{ fontWeight:800,fontSize:15,marginBottom:18 }}>Notifications</div>
         <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
           {notifs.map((n, i) => (
             <div key={i} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",gap:16 }}>
               <div>
                 <div style={{ fontWeight:700,fontSize:14 }}>{n.label}</div>
-                <div style={{ color:"#98a7c2",fontSize:12,marginTop:2 }}>{n.desc}</div>
+                <div style={{ color:"#4d6a8a",fontSize:12,marginTop:2 }}>{n.desc}</div>
               </div>
               <button onClick={() => setNotifStates(s => ({ ...s, [i]: !s[i] }))}
                 style={{ width:44,height:24,borderRadius:999,border:"none",background:notifStates[i]?"#4f46e5":"#1e2d45",cursor:"pointer",position:"relative",flexShrink:0,transition:"background .2s" }}>
@@ -916,14 +916,14 @@ function ScoutDashboard() {
     : [];
 
   return (
-    <div style={{ minHeight:"100vh",display:"flex",background:"#0b1220",color:"#e6edf7",fontFamily:"'Syne',ui-sans-serif,system-ui,sans-serif" }}>
+    <div style={{ minHeight:"100vh",display:"flex",background:"#080e1a",color:"#f0f6ff",fontFamily:"'Plus Jakarta Sans',ui-sans-serif,system-ui,sans-serif" }}>
       <style>{dashStyles}</style>
 
       {/* Sidebar */}
-      <aside style={{ width:220,background:"#0f172a",borderRight:"1px solid #22304a",display:"flex",flexDirection:"column",padding:"24px 0",position:"sticky",top:0,height:"100vh",flexShrink:0 }}>
+      <aside style={{ width:220,background:"#0a1525",borderRight:"1px solid #162438",display:"flex",flexDirection:"column",padding:"24px 0",position:"sticky",top:0,height:"100vh",flexShrink:0 }}>
         <div style={{ display:"flex",alignItems:"center",gap:10,padding:"0 20px",marginBottom:32 }}>
-          <div style={{ width:36,height:36,borderRadius:12,background:"rgba(79,70,229,.2)",border:"1px solid rgba(79,70,229,.35)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18 }}>⚽</div>
-          <span style={{ fontWeight:800,fontSize:16 }}>ScoutLinkz</span>
+          <div style={{ width:36,height:36,borderRadius:10,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18 }}>⚽</div>
+          <span style={{ fontWeight:800,fontSize:16,letterSpacing:"-.02em" }}>ScoutLinkz</span>
         </div>
 
         <nav style={{ display:"flex",flexDirection:"column",gap:4,flex:1,padding:"0 12px" }}>
@@ -931,29 +931,29 @@ function ScoutDashboard() {
             const active = page === item.key || (page === "profile" && item.key === "discover");
             return (
               <div key={item.key} onClick={() => { setPage(item.key); setViewingAthlete(null); setSearch(""); }}
-                style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,cursor:"pointer",color:active?"#a5b4fc":"#98a7c2",fontSize:14,fontWeight:700,background:active?"rgba(79,70,229,.15)":"transparent",border:active?"1px solid rgba(79,70,229,.25)":"1px solid transparent",transition:"all .15s" }}>
+                style={{ display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:10,cursor:"pointer",color:active?"#c7d2fe":"#4d6a8a",fontSize:14,fontWeight:active?700:500,background:active?"rgba(99,102,241,.12)":"transparent",border:active?"1px solid rgba(99,102,241,.2)":"1px solid transparent",transition:"all .15s",letterSpacing:"-.01em" }}>
                 <span style={{ fontSize:16,width:22,textAlign:"center" }}>{item.icon}</span>
                 {item.label}
                 {item.key === "saved" && savedIds.length > 0 && (
-                  <span style={{ marginLeft:"auto",background:"rgba(79,70,229,.3)",color:"#a5b4fc",fontSize:11,fontWeight:800,borderRadius:999,padding:"1px 7px" }}>{savedIds.length}</span>
+                  <span style={{ marginLeft:"auto",background:"rgba(99,102,241,.25)",color:"#c7d2fe",fontSize:11,fontWeight:700,borderRadius:999,padding:"1px 7px" }}>{savedIds.length}</span>
                 )}
               </div>
             );
           })}
         </nav>
 
-        <div style={{ padding:"16px 16px 0",borderTop:"1px solid #22304a",marginTop:16 }}>
+        <div style={{ padding:"16px 16px 0",borderTop:"1px solid #162438",marginTop:16 }}>
           <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:12 }}>
-            <div style={{ width:34,height:34,borderRadius:10,background:"rgba(79,70,229,.2)",border:"1px solid rgba(79,70,229,.35)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:14 }}>
+            <div style={{ width:34,height:34,borderRadius:10,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:14 }}>
               {(user?.displayName?.[0] || user?.email?.[0] || "S").toUpperCase()}
             </div>
             <div style={{ minWidth:0 }}>
-              <div style={{ fontWeight:800,fontSize:13,color:"#e6edf7",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{user?.displayName || "Scout"}</div>
-              <div style={{ color:"#98a7c2",fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{user?.email}</div>
+              <div style={{ fontWeight:700,fontSize:13,color:"#f0f6ff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",letterSpacing:"-.01em" }}>{user?.displayName || "Scout"}</div>
+              <div style={{ color:"#4d6a8a",fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{user?.email}</div>
             </div>
           </div>
           <button onClick={handleLogout} disabled={loggingOut}
-            style={{ width:"100%",padding:"9px 0",borderRadius:10,background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",color:"#fca5a5",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit" }}>
+            style={{ width:"100%",padding:"8px 0",borderRadius:9,background:"rgba(239,68,68,.07)",border:"1px solid rgba(239,68,68,.18)",color:"#f87171",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"inherit",letterSpacing:"-.01em" }}>
             {loggingOut ? "…" : "Sign out"}
           </button>
         </div>
@@ -962,35 +962,35 @@ function ScoutDashboard() {
       {/* Main content */}
       <main style={{ flex:1,display:"flex",flexDirection:"column",overflow:"auto" }}>
         {/* Topbar */}
-        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 32px",borderBottom:"1px solid #22304a",position:"sticky",top:0,background:"rgba(11,18,32,.95)",backdropFilter:"blur(8px)",zIndex:10 }}>
-          <div style={{ fontWeight:800,fontSize:18 }}>
+        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 32px",borderBottom:"1px solid #162438",position:"sticky",top:0,background:"rgba(8,14,26,.95)",backdropFilter:"blur(10px)",zIndex:10 }}>
+          <div style={{ fontWeight:800,fontSize:17,letterSpacing:"-.025em" }}>
             {page === "profile" ? (
               <span style={{ display:"flex",alignItems:"center",gap:8 }}>
-                <button onClick={handleBack} style={{ background:"none",border:"none",color:"#98a7c2",cursor:"pointer",fontSize:16,padding:0 }}>←</button>
+                <button onClick={handleBack} style={{ background:"none",border:"none",color:"#4d6a8a",cursor:"pointer",fontSize:16,padding:0 }}>←</button>
                 {viewingAthlete?.name}
               </span>
             ) : pageTitles[page]}
           </div>
           <div style={{ position:"relative" }}>
-            <div style={{ display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.05)",border:"1px solid #22304a",borderRadius:11,padding:"8px 14px" }}>
-              <span style={{ opacity:.5,fontSize:14 }}>🔍</span>
+            <div style={{ display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.04)",border:"1px solid #1e3352",borderRadius:10,padding:"8px 14px" }}>
+              <span style={{ opacity:.4,fontSize:14 }}>🔍</span>
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Quick search…"
-                style={{ background:"none",border:"none",outline:"none",color:"#e6edf7",fontSize:14,fontFamily:"inherit",width:180 }} />
-              {search && <button onClick={()=>setSearch("")} style={{ background:"none",border:"none",color:"#98a7c2",cursor:"pointer",fontSize:16,padding:0 }}>×</button>}
+                style={{ background:"none",border:"none",outline:"none",color:"#f0f6ff",fontSize:14,fontFamily:"'DM Sans',inherit",width:180 }} />
+              {search && <button onClick={()=>setSearch("")} style={{ background:"none",border:"none",color:"#4d6a8a",cursor:"pointer",fontSize:16,padding:0 }}>×</button>}
             </div>
             {search && searchFiltered.length > 0 && (
-              <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:"#0f172a",border:"1px solid #22304a",borderRadius:14,overflow:"hidden",minWidth:260,boxShadow:"0 12px 40px rgba(0,0,0,.5)",zIndex:100 }}>
+              <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:"#0a1525",border:"1px solid #22304a",borderRadius:14,overflow:"hidden",minWidth:260,boxShadow:"0 12px 40px rgba(0,0,0,.5)",zIndex:100 }}>
                 {searchFiltered.map(a => (
                   <div key={a.id} onClick={() => { handleViewAthlete(a); setSearch(""); }}
                     style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid #1a2740" }}
                     onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.05)"}
                     onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <div style={{ width:30,height:30,borderRadius:8,background:"rgba(79,70,229,.15)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:11,flexShrink:0 }}>
+                    <div style={{ width:30,height:30,borderRadius:8,background:"rgba(99,102,241,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:11,flexShrink:0 }}>
                       {a.name.split(" ").map(x=>x[0]).join("")}
                     </div>
                     <div>
                       <div style={{ fontWeight:700,fontSize:13 }}>{a.name}</div>
-                      <div style={{ color:"#98a7c2",fontSize:11 }}>{a.sport} · {a.position}</div>
+                      <div style={{ color:"#4d6a8a",fontSize:11 }}>{a.sport} · {a.position}</div>
                     </div>
                   </div>
                 ))}
@@ -1028,7 +1028,7 @@ function AppRouter() {
         <div style={s.loadingSpinner} className="sl-spinner-lg" />
         <style>{`
           @keyframes spin { to { transform: rotate(360deg); } }
-          .sl-spinner-lg { width:28px;height:28px;border:3px solid rgba(79,70,229,.2);border-top-color:#4f46e5;border-radius:50%;animation:spin .7s linear infinite;margin-top:16px; }
+          .sl-spinner-lg { width:28px;height:28px;border:3px solid rgba(99,102,241,.15);border-top-color:#4f46e5;border-radius:50%;animation:spin .7s linear infinite;margin-top:16px; }
         `}</style>
       </div>
     );
@@ -1052,52 +1052,52 @@ export default function ScoutLinkzAuth() {
 
 // ── Login ──────────────────────────────────────────────────────
 const loginStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500&display=swap');
   .sl-input {
-    width:100%; background:rgba(255,255,255,.04); border:1px solid #22304a;
-    border-radius:12px; color:#e6edf7; font-size:15px; padding:12px 14px;
-    font-family:inherit; outline:none; transition:border-color .2s, box-shadow .2s;
-    box-sizing:border-box;
+    width:100%; background:rgba(255,255,255,.05); border:1px solid #1e3352;
+    border-radius:12px; color:#f0f6ff; font-size:15px; padding:12px 14px;
+    font-family:'DM Sans',inherit; outline:none; transition:border-color .2s, box-shadow .2s;
+    box-sizing:border-box; font-weight:400; letter-spacing:.01em;
   }
-  .sl-input:focus { border-color:rgba(79,70,229,.6); box-shadow:0 0 0 3px rgba(79,70,229,.12); }
-  .sl-input::placeholder { color:#4a5a78; }
+  .sl-input:focus { border-color:rgba(99,102,241,.7); box-shadow:0 0 0 3px rgba(99,102,241,.15); }
+  .sl-input::placeholder { color:#3d5474; }
   .sl-submit {
-    width:100%; padding:14px; border-radius:14px; border:none;
-    background:linear-gradient(135deg,#4f46e5,#6366f1);
-    color:#fff; font-size:16px; font-weight:800; font-family:inherit;
-    cursor:pointer; transition:filter .2s, transform .1s;
+    width:100%; padding:14px; border-radius:12px; border:none;
+    background:linear-gradient(135deg,#4f46e5,#818cf8);
+    color:#fff; font-size:15px; font-weight:700; font-family:'Plus Jakarta Sans',inherit;
+    cursor:pointer; transition:filter .2s, transform .1s, box-shadow .2s;
     display:flex; align-items:center; justify-content:center; gap:10px;
-    letter-spacing:.01em;
+    letter-spacing:.02em; box-shadow: 0 4px 20px rgba(99,102,241,.3);
   }
-  .sl-submit:hover:not(:disabled) { filter:brightness(1.1); transform:translateY(-1px); }
+  .sl-submit:hover:not(:disabled) { filter:brightness(1.08); transform:translateY(-1px); box-shadow:0 8px 28px rgba(79,70,229,.45); }
   .sl-submit:active:not(:disabled) { transform:translateY(0); }
-  .sl-submit:disabled { opacity:.6; cursor:not-allowed; }
+  .sl-submit:disabled { opacity:.55; cursor:not-allowed; }
   @keyframes spin { to { transform:rotate(360deg); } }
   .sl-spinner { width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite; }
 `;
 
 const s = {
   loginRoot: {
-    minHeight: "100vh", background: "#0b1220",
+    minHeight: "100vh", background: "#080e1a",
     display: "flex", alignItems: "center", justifyContent: "center",
-    fontFamily: "'Syne', ui-sans-serif, system-ui, sans-serif",
+    fontFamily: "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
     position: "relative", overflow: "hidden",
   },
   gridBg: {
     position: "absolute", inset: 0,
     display: "grid", gridTemplateColumns: "repeat(10, 1fr)",
-    opacity: 0.04, pointerEvents: "none",
+    opacity: 0.035, pointerEvents: "none",
   },
-  gridCell: { border: "1px solid #4f46e5" },
+  gridCell: { border: "1px solid #6366f1" },
   orb1: {
-    position: "absolute", width: 500, height: 500, borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(79,70,229,.18) 0%, transparent 70%)",
-    top: -120, right: -100, pointerEvents: "none",
+    position: "absolute", width: 600, height: 600, borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(79,70,229,.14) 0%, transparent 65%)",
+    top: -150, right: -120, pointerEvents: "none",
   },
   orb2: {
-    position: "absolute", width: 400, height: 400, borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(6,182,212,.1) 0%, transparent 70%)",
-    bottom: -80, left: -80, pointerEvents: "none",
+    position: "absolute", width: 450, height: 450, borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(99,102,241,.08) 0%, transparent 65%)",
+    bottom: -100, left: -100, pointerEvents: "none",
   },
   loginWrap: {
     position: "relative", zIndex: 1,
@@ -1107,91 +1107,96 @@ const s = {
     display: "flex", alignItems: "center", gap: 14, marginBottom: 32,
   },
   logoIcon: {
-    width: 52, height: 52, borderRadius: 18,
-    background: "rgba(79,70,229,.2)", border: "1px solid rgba(79,70,229,.4)",
+    width: 52, height: 52, borderRadius: 16,
+    background: "rgba(99,102,241,.15)", border: "1px solid rgba(99,102,241,.35)",
     display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26,
   },
-  logoName: { fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 22, color: "#e6edf7" },
-  logoSub:  { color: "#98a7c2", fontSize: 13, marginTop: 2 },
+  logoName: { fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 22, color: "#f0f6ff", letterSpacing: "-.02em" },
+  logoSub:  { color: "#5b7a9d", fontSize: 13, marginTop: 2, fontWeight: 500 },
   card: {
-    background: "rgba(15,23,42,.85)", border: "1px solid #22304a",
-    borderRadius: 24, padding: 32,
-    backdropFilter: "blur(12px)",
-    boxShadow: "0 24px 80px rgba(0,0,0,.4)",
+    background: "rgba(10,17,34,.9)", border: "1px solid #1a2d4a",
+    borderRadius: 20, padding: 32,
+    backdropFilter: "blur(16px)",
+    boxShadow: "0 32px 80px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04)",
     display: "flex", flexDirection: "column", gap: 20,
   },
   cardHead: { display: "flex", flexDirection: "column", gap: 6 },
-  cardTitle: { fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 26, color: "#e6edf7", margin: 0 },
-  cardSub:   { color: "#98a7c2", fontSize: 14, margin: 0 },
+  cardTitle: { fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 24, color: "#f0f6ff", margin: 0, letterSpacing: "-.03em" },
+  cardSub:   { color: "#5b7a9d", fontSize: 14, margin: 0, fontFamily: "'DM Sans', sans-serif", fontWeight: 400 },
   errorBanner: {
-    background: "rgba(239,68,68,.12)", border: "1px solid rgba(239,68,68,.3)",
-    borderRadius: 12, padding: "12px 16px", color: "#fca5a5",
-    fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 8,
+    background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.25)",
+    borderRadius: 10, padding: "12px 16px", color: "#fca5a5",
+    fontSize: 14, fontWeight: 500, display: "flex", alignItems: "center", gap: 8,
+    fontFamily: "'DM Sans', sans-serif",
   },
   successBanner: {
-    background: "rgba(34,197,94,.12)", border: "1px solid rgba(34,197,94,.3)",
-    borderRadius: 12, padding: "14px 16px", color: "#86efac",
-    fontSize: 14, fontWeight: 700, textAlign: "center",
+    background: "rgba(34,197,94,.1)", border: "1px solid rgba(34,197,94,.25)",
+    borderRadius: 10, padding: "14px 16px", color: "#6ee7b7",
+    fontSize: 14, fontWeight: 600, textAlign: "center",
   },
   field: { display: "flex", flexDirection: "column", gap: 7 },
-  label: { color: "#98a7c2", fontSize: 13, fontWeight: 700, letterSpacing: ".04em" },
+  label: { color: "#7a9bbf", fontSize: 12, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase" },
   input: {
-    width: "100%", background: "rgba(255,255,255,.04)", border: "1px solid #22304a",
-    borderRadius: 12, color: "#e6edf7", fontSize: 15, padding: "12px 14px",
-    fontFamily: "'Syne', sans-serif", outline: "none",
+    width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid #1e3352",
+    borderRadius: 10, color: "#f0f6ff", fontSize: 15, padding: "12px 14px",
+    fontFamily: "'DM Sans', sans-serif", outline: "none",
   },
-  fieldErr: { color: "#fca5a5", fontSize: 12, fontWeight: 600 },
+  fieldErr: { color: "#fca5a5", fontSize: 12, fontWeight: 500 },
   pwWrap: { position: "relative" },
   pwInput: { paddingRight: 44 },
   eyeBtn: {
     position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
-    background: "none", border: "none", cursor: "pointer", fontSize: 16, padding: 4,
+    background: "none", border: "none", cursor: "pointer", fontSize: 16, padding: 4, opacity: .6,
   },
   forgotRow: { display: "flex", justifyContent: "flex-end" },
   forgotBtn: {
-    background: "none", border: "none", color: "#6366f1",
-    fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+    background: "none", border: "none", color: "#818cf8",
+    fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
     textDecoration: "underline", textUnderlineOffset: 3,
   },
   submitBtn: { marginTop: 4 },
   tabs: {
-    display: "flex", background: "rgba(15,23,42,.8)", border: "1px solid #22304a",
-    borderRadius: 16, padding: 4, marginBottom: 12, gap: 4,
+    display: "flex", background: "rgba(10,17,34,.8)", border: "1px solid #1a2d4a",
+    borderRadius: 14, padding: 4, marginBottom: 12, gap: 4,
   },
   tab: {
-    flex: 1, padding: "10px 0", borderRadius: 12, border: "none",
-    background: "transparent", color: "#98a7c2", fontWeight: 700, fontSize: 14,
-    cursor: "pointer", fontFamily: "inherit", transition: "all .2s",
+    flex: 1, padding: "10px 0", borderRadius: 10, border: "1px solid transparent",
+    background: "transparent", color: "#5b7a9d", fontWeight: 600, fontSize: 14,
+    cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "all .2s",
   },
   tabActive: {
-    background: "rgba(79,70,229,.2)", color: "#a5b4fc",
-    border: "1px solid rgba(79,70,229,.35)",
+    background: "rgba(99,102,241,.15)", color: "#c7d2fe",
+    border: "1px solid rgba(99,102,241,.3)",
   },
   demoNote: {
-    background: "rgba(79,70,229,.08)", border: "1px dashed rgba(79,70,229,.3)",
-    borderRadius: 10, padding: "10px 14px", color: "#98a7c2", fontSize: 12,
+    background: "rgba(79,70,229,.06)", border: "1px dashed rgba(79,70,229,.25)",
+    borderRadius: 10, padding: "10px 14px", color: "#5b7a9d", fontSize: 12,
     textAlign: "center",
   },
   backBtn: {
-    background: "none", border: "none", color: "#98a7c2",
-    fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+    background: "none", border: "none", color: "#5b7a9d",
+    fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
     textAlign: "center", marginTop: 4,
   },
   loadingScreen: {
-    minHeight: "100vh", background: "#0b1220",
+    minHeight: "100vh", background: "#080e1a",
     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-    fontFamily: "'Syne', sans-serif", gap: 8,
+    fontFamily: "'Plus Jakarta Sans', sans-serif", gap: 8,
   },
   loadingLogo: { fontSize: 40, marginBottom: 8 },
-  loadingText: { color: "#e6edf7", fontWeight: 800, fontSize: 22 },
+  loadingText: { color: "#f0f6ff", fontWeight: 800, fontSize: 22, letterSpacing: "-.02em" },
   loadingSpinner: {},
 };
 
 // ── Dashboard ──────────────────────────────────────────────────
 const dashStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&display=swap');
-  * { box-sizing: border-box; }
-  select option { background: #0f172a; color: #e6edf7; }
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; }
+  body { background: #080e1a; }
+  select option { background: #0c1525; color: #f0f6ff; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #1e3352; border-radius: 3px; }
 `;
 
 
