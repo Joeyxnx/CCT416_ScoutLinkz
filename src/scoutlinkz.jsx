@@ -503,7 +503,7 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
             </div>
             <div style={{ color:"#4d6a8a",fontSize:14,marginBottom:12 }}>{athlete.sport} · {athlete.position} · Grad {athlete.gradYear} · {athlete.location}</div>
             <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
-              {[athlete.sport, `GPA ${athlete.gpa}`, athlete.height, athlete.weight, `${athlete.foot} foot`].map(t => (
+              {[athlete.sport, athlete.gpa ? `GPA ${athlete.gpa}` : null, athlete.height, athlete.weight, athlete.foot ? `${athlete.foot} foot` : null].filter(Boolean).map(t => (
                 <span key={t} style={{ fontSize:12,fontWeight:700,padding:"4px 10px",borderRadius:999,border:"1px solid #22304a",background:"rgba(255,255,255,.05)" }}>{t}</span>
               ))}
             </div>
@@ -511,7 +511,7 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
         </div>
         <p style={{ marginTop:16,lineHeight:1.6,color:"#f0f6ff",opacity:.9 }}>{athlete.bio}</p>
         <div style={{ display:"flex",gap:8,marginTop:12,flexWrap:"wrap" }}>
-          {athlete.tags.map(t => <span key={t} style={{ fontSize:12,padding:"5px 10px",borderRadius:999,background:"rgba(255,255,255,.06)",border:"1px solid #22304a" }}>{t}</span>)}
+          {(athlete.tags || []).map(t = <span key={t} style={{ fontSize:12,padding:"5px 10px",borderRadius:999,background:"rgba(255,255,255,.06)",border:"1px solid #22304a" }}>{t}</span>)}
         </div>
       </div>
 
@@ -520,7 +520,7 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
         <div style={{ background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:18,padding:20 }}>
           <div style={{ fontWeight:800,fontSize:15,marginBottom:14 }}>Key Stats</div>
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
-            {athlete.stats.map(s => (
+            {(athlete.stats || []).map(s => (
               <div key={s.label} style={{ background:"rgba(255,255,255,.05)",border:"1px solid #22304a",borderRadius:12,padding:12 }}>
                 <div style={{ fontWeight:800,fontSize:20 }}>{s.value}</div>
                 <div style={{ color:"#4d6a8a",fontSize:12,marginTop:3 }}>{s.label}</div>
@@ -546,7 +546,7 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
         </div>
 
         {/* Highlights */}
-        {athlete.highlights.length > 0 && (
+        {(athlete.highlights || []).length > 0 && (
           <div style={{ gridColumn:"span 2",background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:18,padding:20 }}>
             <div style={{ fontWeight:800,fontSize:15,marginBottom:14 }}>Highlight Reel</div>
             <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12 }}>
