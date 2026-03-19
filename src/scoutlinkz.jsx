@@ -383,16 +383,6 @@ function LoginPage() {
 // ═══════════════════════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════════════════════
-const ATHLETES = [
-  { id: 1,  name: "Devin Smith",    sport: "Soccer",      position: "Goalkeeper",    gradYear: 2026, location: "Toronto, ON",    height: "6'1\"", weight: "200 lbs", gpa: 3.7, foot: "Right",  status: "in-review",  bio: "Explosive shot-stopper with strong distribution. Comfortable playing out of the back.", tags: ["Shot-stopping","1v1","Distribution"], stats: [{label:"Saves",value:68},{label:"Clean Sheets",value:9},{label:"Save %",value:"78%"},{label:"Games",value:18}], email: "devin@example.com", phone: "(555) 123-4567", highlights: [{title:"Top Saves (2025)",videoId:"0jlkr3V6I74"},{title:"Distribution Clips",videoId:"Bz8PO5rFWe8"},{title:"Training Session",videoId:"v36snA3Dsg8"}] },
-  { id: 2,  name: "Marcus Lee",     sport: "Basketball",  position: "Point Guard",   gradYear: 2025, location: "Mississauga, ON", height: "6'0\"", weight: "180 lbs", gpa: 3.4, foot: "Right",  status: "interested", bio: "High-IQ playmaker with elite court vision and a reliable mid-range game.", tags: ["Playmaking","Defense","Leadership"], stats: [{label:"PPG",value:18.4},{label:"APG",value:7.2},{label:"RPG",value:4.1},{label:"Games",value:24}], email: "marcus@example.com", phone: "(555) 234-5678", highlights: [] },
-  { id: 3,  name: "Jordan Rivera",  sport: "Track",       position: "Sprinter",      gradYear: 2026, location: "Brampton, ON",   height: "5'11\"",weight: "170 lbs", gpa: 3.9, foot: "Left",   status: "contacted",  bio: "Sub-11 sprinter specializing in 100m and 200m. Provincial gold medalist.", tags: ["Speed","Explosiveness","Technique"], stats: [{label:"100m",value:"10.8s"},{label:"200m",value:"21.6s"},{label:"Medals",value:6},{label:"Meets",value:12}], email: "jordan@example.com", phone: "(555) 345-6789", highlights: [] },
-  { id: 4,  name: "Taylor Brooks",  sport: "Soccer",      position: "Center Back",   gradYear: 2027, location: "Oakville, ON",   height: "6'2\"", weight: "195 lbs", gpa: 3.5, foot: "Right",  status: "interested", bio: "Dominant aerial presence with excellent reading of the game. Strong in the tackle.", tags: ["Defending","Aerial","Leadership"], stats: [{label:"Tackles",value:54},{label:"Intercepts",value:31},{label:"Goals",value:3},{label:"Games",value:22}], email: "taylor@example.com", phone: "(555) 456-7890", highlights: [] },
-  { id: 5,  name: "Aisha Patel",    sport: "Soccer",      position: "Midfielder",    gradYear: 2025, location: "Scarborough, ON","height": "5'6\"", weight: "140 lbs", gpa: 4.0, foot: "Both",   status: "none",       bio: "Box-to-box midfielder with outstanding technical ability and work rate.", tags: ["Technical","Stamina","Vision"], stats: [{label:"Goals",value:11},{label:"Assists",value:14},{label:"Pass %",value:"89%"},{label:"Games",value:20}], email: "aisha@example.com", phone: "(555) 567-8901", highlights: [] },
-  { id: 6,  name: "Chris Okafor",   sport: "Basketball",  position: "Center",        gradYear: 2026, location: "North York, ON", height: "6'9\"", weight: "240 lbs", gpa: 3.2, foot: "Right",  status: "passed",     bio: "Physical presence in the paint with developing post moves and shot-blocking ability.", tags: ["Paint","Rebounding","Blocks"], stats: [{label:"PPG",value:14.1},{label:"RPG",value:9.8},{label:"BPG",value:3.2},{label:"Games",value:20}], email: "chris@example.com", phone: "(555) 678-9012", highlights: [] },
-  { id: 7,  name: "Sofia Hernandez",sport: "Track",       position: "Long Distance",  gradYear: 2025, location: "Etobicoke, ON",  height: "5'5\"", weight: "128 lbs", gpa: 3.8, foot: "Right",  status: "none",       bio: "Consistent long-distance runner with a strong finishing kick. National qualifier.", tags: ["Endurance","Pacing","Mental Strength"], stats: [{label:"1500m",value:"4:12"},{label:"5K",value:"16:40"},{label:"Medals",value:4},{label:"Meets",value:15}], email: "sofia@example.com", phone: "(555) 789-0123", highlights: [] },
-  { id: 8,  name: "Ryan Kim",       sport: "Soccer",      position: "Winger",        gradYear: 2027, location: "Richmond Hill, ON","height":"5'9\"",weight: "158 lbs", gpa: 3.6, foot: "Left",   status: "interested", bio: "Pacy winger with a lethal left foot and ability to take on defenders 1v1.", tags: ["Pace","Dribbling","Crossing"], stats: [{label:"Goals",value:9},{label:"Assists",value:12},{label:"Dribbles",value:78},{label:"Games",value:21}], email: "ryan@example.com", phone: "(555) 890-1234", highlights: [] },
-];
 
 const STATUS_CONFIG = {
   "none":       { label: "No Status",   color: "#64748b", bg: "rgba(100,116,139,.1)",  border: "rgba(100,116,139,.2)" },
@@ -1157,7 +1147,7 @@ function ScoutDashboard({ scoutProfile }) {
   const [savedIds, setSavedIds] = useState([]);
   const [loggingOut, setLoggingOut] = useState(false);
   const [search, setSearch]     = useState("");
-  const [athletes, setAthletes] = useState(ATHLETES);
+  const [athletes, setAthletes] = useState([]);
   const [dbLoading, setDbLoading] = useState(true);
   const [viewedIds, setViewedIds] = useState([]);
 
@@ -1166,9 +1156,9 @@ function ScoutDashboard({ scoutProfile }) {
     fetchAthletes()
       .then(dbAthletes => {
         const mapped = dbAthletes.map(a => ({ ...a, id: a.uid || a.id }));
-        setAthletes(mapped.length > 0 ? [...mapped, ...ATHLETES] : ATHLETES);
+        setAthletes(mapped);
       })
-      .catch(() => setAthletes(ATHLETES))
+      .catch(() => setAthletes([]))
       .finally(() => setDbLoading(false));
   }, []);
 
