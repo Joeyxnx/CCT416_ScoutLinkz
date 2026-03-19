@@ -652,11 +652,13 @@ function PageDashboard({ athletes, statuses, savedIds, onViewAthlete }) {
 // ═══════════════════════════════════════════════════════════════
 // PAGE: DISCOVER
 // ═══════════════════════════════════════════════════════════════
-function PageDiscover({ athletes, statuses, savedIds, onViewAthlete, onToggleSave }) {
-  const [search, setSearch]     = useState("");
-  const [sportFilter, setSport] = useState("All");
+function PageDiscover({ athletes, statuses, savedIds, onViewAthlete, onToggleSave, defaultSports = [] }) {
+  const [search, setSearch]       = useState("");
+  const [sportFilter, setSport]   = useState(
+    defaultSports.includes("All Sports") || defaultSports.length === 0 ? "All" : defaultSports[0]
+  );
   const [statusFilter, setStatusF] = useState("All");
-  const [sortBy, setSort]       = useState("name");
+  const [sortBy, setSort]          = useState("name");
 
   const sports   = ["All", ...Array.from(new Set(athletes.map(a => a.sport)))];
   const statuses_list = ["All", ...Object.keys(STATUS_CONFIG)];
@@ -1593,14 +1595,22 @@ function AthleteProfileSetup() {
 // ═══════════════════════════════════════════════════════════════
 function AppRouter() {
   const { user, role, loading } = useAuth();
-  const [athleteProfile, setAthleteProfile] = useState(undefined); // undefined=checking
+  const [athleteProfile, setAthleteProfile] = useState(undefined);
+  const [scoutProfile,   setScoutProfile]   = useState(undefined);
 
   useEffect(() => {
     if (!user || role !== "athlete") { setAthleteProfile(null); return; }
     fetchAthlete(user.uid).then(setAthleteProfile);
   }, [user, role]);
 
-  if (loading || (role === "athlete" && athleteProfile === undefined)) {
+  useEffect(() => {
+    if (!user || role !== "scout") { setScoutProfile(null); return; }
+    fetchScoutProfile(user.uid).then(setScoutProfile);
+  }, [user, role]);
+
+  const scoutReady = role === "scout" ? scoutProfile !== undefined : true;
+
+  if (loading || (role === "athlete" && athleteProfile === undefined) || !scoutReady) {
     return (
       <div style={s.loadingScreen}>
         <div style={s.loadingLogo}>⚽</div>
@@ -1615,10 +1625,12 @@ function AppRouter() {
   }
 
   if (!user) return <LoginPage />;
+  if (role === "scout" && !scoutProfile?.onboardingComplete)
+    return <ScoutOnboarding onComplete={p => setScoutProfile(prev => ({ ...prev, ...p, onboardingComplete: true }))} />;
   if (role === "athlete" && !athleteProfile) return <AthleteProfileSetup />;
   if (role === "athlete" && athleteProfile && !athleteProfile.profileComplete) return <AthleteProfileSetup />;
-  if (role === "athlete" && athleteProfile)  return <AthleteDashboard profile={athleteProfile} />;
-  return <ScoutDashboard />;
+  if (role === "athlete" && athleteProfile) return <AthleteDashboard profile={athleteProfile} />;
+  return <ScoutDashboard scoutProfile={scoutProfile} />;
 }
 
 // ─── ROOT EXPORT ─────────────────────────────────────────────
