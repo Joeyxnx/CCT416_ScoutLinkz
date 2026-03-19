@@ -511,7 +511,7 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
         </div>
         <p style={{ marginTop:16,lineHeight:1.6,color:"#f0f6ff",opacity:.9 }}>{athlete.bio}</p>
         <div style={{ display:"flex",gap:8,marginTop:12,flexWrap:"wrap" }}>
-          {(athlete.tags || []).map(t = <span key={t} style={{ fontSize:12,padding:"5px 10px",borderRadius:999,background:"rgba(255,255,255,.06)",border:"1px solid #22304a" }}>{t}</span>)}
+          {(athlete.tags || []).map(t => <span key={t} style={{ fontSize:12,padding:"5px 10px",borderRadius:999,background:"rgba(255,255,255,.06)",border:"1px solid #22304a" }}>{t}</span>)}
         </div>
       </div>
 
