@@ -67,6 +67,10 @@ export async function fetchScoutData(scoutUid) {
 export async function saveScoutData(scoutUid, data) {
   await setDoc(doc(db, "scouts", scoutUid), { ...data, updatedAt: serverTimestamp() }, { merge: true });
 }
+export async function fetchScoutProfile(scoutUid) {
+  const snap = await getDoc(doc(db, "scouts", scoutUid));
+  return snap.exists() ? snap.data() : null;
+}
 // ────────────────────────────────────────────────────────────
 
 // ─── AUTH CONTEXT ────────────────────────────────────────────
@@ -1035,8 +1039,114 @@ function AthleteDashboard({ profile }) {
   );
 }
 
+const SCOUT_SPORTS = ["Soccer","Basketball","Track & Field","Football","Baseball","Volleyball","Swimming","Tennis","Lacrosse","All Sports"];
 
-function ScoutDashboard() {
+function ScoutOnboarding({ onComplete }) {
+  const { user } = useAuth();
+  const [org, setOrg]       = useState("");
+  const [role, setRole]     = useState("");
+  const [sports, setSports] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState("");
+
+  function toggleSport(s) {
+    setSports(prev =>
+      prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+    );
+  }
+
+  async function handleSubmit() {
+    if (!org.trim()) { setError("Please enter your organization or school."); return; }
+    if (sports.length === 0) { setError("Please select at least one sport."); return; }
+    setSaving(true); setError("");
+    try {
+      await setDoc(doc(db, "scouts", user.uid), {
+        org, role, sports,
+        onboardingComplete: true,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      onComplete({ org, role, sports });
+    } catch {
+      setError("Failed to save. Please try again.");
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div style={{ minHeight:"100vh", background:"#080e1a", color:"#f0f6ff", fontFamily:"'Plus Jakarta Sans',sans-serif", display:"flex", alignItems:"center", justifyContent:"center", padding:"40px 20px" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=DM+Sans:wght@400;500&display=swap'); *{box-sizing:border-box;}`}</style>
+      <div style={{ width:"100%", maxWidth:520 }}>
+        {/* Logo */}
+        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:36 }}>
+          <div style={{ width:40,height:40,borderRadius:12,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20 }}>⚽</div>
+          <span style={{ fontWeight:800, fontSize:18, letterSpacing:"-.02em" }}>ScoutLinkz</span>
+        </div>
+
+        {/* Header */}
+        <h1 style={{ fontWeight:800, fontSize:28, letterSpacing:"-.03em", margin:"0 0 8px" }}>Set up your scout profile</h1>
+        <p style={{ color:"#4d6a8a", fontSize:14, margin:"0 0 32px", fontFamily:"'DM Sans',sans-serif" }}>We'll personalize your athlete feed based on this.</p>
+
+        <div style={{ background:"rgba(10,21,37,.9)", border:"1px solid #162438", borderRadius:20, padding:32, display:"flex", flexDirection:"column", gap:20 }}>
+          {error && (
+            <div style={{ background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.25)",borderRadius:10,padding:"12px 16px",color:"#fca5a5",fontSize:14 }}>{error}</div>
+          )}
+
+          {/* Organization */}
+          <div>
+            <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",display:"block",marginBottom:8 }}>
+              School or Organization *
+            </label>
+            <input value={org} onChange={e => setOrg(e.target.value)} placeholder="e.g. Toronto FC Academy"
+              style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:15,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }} />
+          </div>
+
+          {/* Role */}
+          <div>
+            <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",display:"block",marginBottom:8 }}>
+              Your Role
+            </label>
+            <input value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Head Scout, Assistant Coach"
+              style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:15,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }} />
+          </div>
+
+          {/* Sports multi-select */}
+          <div>
+            <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",display:"block",marginBottom:8 }}>
+              Sports You Scout *
+            </label>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+              {SCOUT_SPORTS.map(s => {
+                const selected = sports.includes(s);
+                return (
+                  <button key={s} type="button" onClick={() => toggleSport(s)}
+                    style={{ padding:"8px 14px", borderRadius:999, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all .15s",
+                      border: selected ? "1px solid rgba(99,102,241,.6)"  : "1px solid #1e3352",
+                      background: selected ? "rgba(99,102,241,.18)" : "rgba(255,255,255,.04)",
+                      color: selected ? "#c7d2fe" : "#4d6a8a",
+                    }}>
+                    {s}
+                  </button>
+                );
+              })}
+            </div>
+            {sports.length > 0 && (
+              <p style={{ color:"#818cf8", fontSize:12, margin:"8px 0 0", fontFamily:"'DM Sans',sans-serif" }}>
+                ✓ Showing athletes for: {sports.join(", ")}
+              </p>
+            )}
+          </div>
+
+          <button onClick={handleSubmit} disabled={saving}
+            style={{ padding:"13px", borderRadius:12, border:"none", background:"linear-gradient(135deg,#4f46e5,#818cf8)", color:"#fff", fontWeight:700, fontSize:15, cursor:"pointer", fontFamily:"inherit", marginTop:4, opacity: saving ? .6 : 1 }}>
+            {saving ? "Saving…" : "Go to Dashboard →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScoutDashboard({ scoutProfile }) {
   const { user, logout } = useAuth();
   const [page, setPage]         = useState("dashboard");
   const [viewingAthlete, setViewingAthlete] = useState(null);
@@ -1078,7 +1188,7 @@ function ScoutDashboard() {
     persist(savedIds, next);
   }
   function handleToggleSave(id) {
-    const next = savedIds.includes(id) ? savedIds.filter(x=>x!==id) : [...savedIds, id];
+    const next = savedIds.includes(id) ? savedIds.filter(x => x !== id) : [...savedIds, id];
     setSavedIds(next);
     persist(next, statuses);
   }
@@ -1109,6 +1219,9 @@ function ScoutDashboard() {
     ? athletes.filter(a => a.name?.toLowerCase().includes(search.toLowerCase()) || a.sport?.toLowerCase().includes(search.toLowerCase()) || a.position?.toLowerCase().includes(search.toLowerCase()))
     : [];
 
+  // Derive default sport filter from scout profile
+  const defaultSports = scoutProfile?.sports || [];
+
   return (
     <div style={{ minHeight:"100vh",display:"flex",background:"#080e1a",color:"#f0f6ff",fontFamily:"'Plus Jakarta Sans',ui-sans-serif,system-ui,sans-serif" }}>
       <style>{dashStyles}</style>
@@ -1136,7 +1249,16 @@ function ScoutDashboard() {
           })}
         </nav>
 
-        <div style={{ padding:"16px 16px 0",borderTop:"1px solid #162438",marginTop:16 }}>
+        {/* Scout org info */}
+        {scoutProfile?.org && (
+          <div style={{ padding:"12px 16px",margin:"0 12px",borderRadius:10,background:"rgba(99,102,241,.07)",border:"1px solid rgba(99,102,241,.15)",marginBottom:12 }}>
+            <div style={{ fontSize:11,color:"#4d6a8a",fontWeight:700,letterSpacing:".05em",textTransform:"uppercase",marginBottom:3 }}>Organization</div>
+            <div style={{ fontSize:13,fontWeight:700,color:"#c7d2fe" }}>{scoutProfile.org}</div>
+            {scoutProfile.role && <div style={{ fontSize:12,color:"#4d6a8a",marginTop:2 }}>{scoutProfile.role}</div>}
+          </div>
+        )}
+
+        <div style={{ padding:"16px 16px 0",borderTop:"1px solid #162438",marginTop:8 }}>
           <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:12 }}>
             <div style={{ width:34,height:34,borderRadius:10,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:14 }}>
               {(user?.displayName?.[0] || user?.email?.[0] || "S").toUpperCase()}
@@ -1195,7 +1317,7 @@ function ScoutDashboard() {
 
         {/* Page content */}
         {page === "dashboard" && <PageDashboard athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} />}
-        {page === "discover"  && <PageDiscover  athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} />}
+        {page === "discover"  && <PageDiscover  athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} defaultSports={defaultSports} />}
         {page === "saved"     && <PageSaved     athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} />}
         {page === "messages"  && <PageMessages  athletes={athletes} />}
         {page === "settings"  && <PageSettings  user={user} />}
@@ -1207,6 +1329,7 @@ function ScoutDashboard() {
     </div>
   );
 }
+
 
 // ═══════════════════════════════════════════════════════════════
 // ATHLETE PROFILE CREATION FORM (multi-step)
