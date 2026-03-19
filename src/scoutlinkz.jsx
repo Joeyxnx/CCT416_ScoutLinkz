@@ -580,7 +580,7 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
 // ═══════════════════════════════════════════════════════════════
 // PAGE: DASHBOARD HOME
 // ═══════════════════════════════════════════════════════════════
-function PageDashboard({ athletes, statuses, savedIds, onViewAthlete }) {
+function PageDashboard({ athletes, statuses, savedIds, viewedIds, onViewAthlete }) {
   const saved    = athletes.filter(a => savedIds.includes(a.id));
   const inReview = athletes.filter(a => statuses[a.id] === "in-review");
   const contacted= athletes.filter(a => statuses[a.id] === "contacted");
@@ -588,9 +588,10 @@ function PageDashboard({ athletes, statuses, savedIds, onViewAthlete }) {
 
   const stats = [
     { label: "Saved Athletes",  value: savedIds.length,  icon: "★",  color: "#f59e0b" },
-    { label: "Profiles Viewed", value: athletes.length,  icon: "👁",  color: "#4f46e5" },
+    { label: "Profiles Viewed", value: viewedIds.length, icon: "👁", color: "#4f46e5" },
     { label: "Contacted",       value: contacted.length, icon: "✉",  color: "#22c55e" },
     { label: "In Review",       value: inReview.length,  icon: "🔍", color: "#06b6d4" },
+
   ];
 
   return (
@@ -1158,6 +1159,7 @@ function ScoutDashboard({ scoutProfile }) {
   const [search, setSearch]     = useState("");
   const [athletes, setAthletes] = useState(ATHLETES);
   const [dbLoading, setDbLoading] = useState(true);
+  const [viewedIds, setViewedIds] = useState([]);
 
   // Load real athletes from Firestore, fall back to demo data
   useEffect(() => {
@@ -1176,27 +1178,33 @@ function ScoutDashboard({ scoutProfile }) {
     fetchScoutData(user.uid).then(data => {
       if (data.savedIds) setSavedIds(data.savedIds);
       if (data.statuses) setStatuses(data.statuses);
+      if (data.viewedIds) setViewedIds(data.viewedIds);
     }).catch(() => {});
   }, [user]);
 
-  async function persist(newSaved, newStatuses) {
+  async function persist(newSaved, newStatuses, newViewed) {
     if (!user) return;
-    try { await saveScoutData(user.uid, { savedIds: newSaved, statuses: newStatuses }); } catch {}
+    try { await saveScoutData(user.uid, { savedIds: newSaved, statuses: newStatuses, viewedIds: newViewed }); } catch {}
   }
 
   function handleStatusChange(id, val) {
     const next = { ...statuses, [id]: val };
     setStatuses(next);
-    persist(savedIds, next);
+    persist(savedIds, next, viewedIds);
   }
   function handleToggleSave(id) {
     const next = savedIds.includes(id) ? savedIds.filter(x => x !== id) : [...savedIds, id];
     setSavedIds(next);
-    persist(next, statuses);
+    persist(next, statuses, viewedIds);
   }
   function handleViewAthlete(a) {
-    setViewingAthlete(a);
-    setPage("profile");
+  setViewingAthlete(a);
+  setPage("profile");
+  if (!viewedIds.includes(a.id)) {
+    const next = [...viewedIds, a.id];
+    setViewedIds(next);
+    persist(savedIds, statuses, next);
+    }
   }
   function handleBack() {
     setViewingAthlete(null);
@@ -1318,7 +1326,7 @@ function ScoutDashboard({ scoutProfile }) {
         </div>
 
         {/* Page content */}
-        {page === "dashboard" && <PageDashboard athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} />}
+        {page === "dashboard" && <PageDashboard athletes={athletes} statuses={statuses} savedIds={savedIds} viewedIds={viewedIds} onViewAthlete={handleViewAthlete} />}
         {page === "discover"  && <PageDiscover  athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} defaultSports={defaultSports} />}
         {page === "saved"     && <PageSaved     athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} />}
         {page === "messages"  && <PageMessages  athletes={athletes} />}
