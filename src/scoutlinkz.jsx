@@ -6,7 +6,7 @@
 // 2. Replace the firebaseConfig object below with your real
 //    credentials from Firebase Console → Project Settings → Your apps
 // 3. In Firebase Console, enable Authentication → Email/Password
-// ============================================================
+// ============================================================ testingg
 
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 
