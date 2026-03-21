@@ -1094,12 +1094,19 @@ function AthleteMessages({ athleteUid }) {
   const [threads, setThreads]   = useState([]);
   const [selected, setSelected] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [input, setInput]       = useState("");
+  const [sending, setSending]   = useState(false);
   const bottomRef = useRef(null);
 
   useEffect(() => {
-    fetchAthleteConversations(athleteUid).then(convos => {
-      setThreads(convos.map(c => ({ scoutUid: c.scoutUid, convId: c.id })));
-      if (convos.length > 0) setSelected({ scoutUid: convos[0].scoutUid, convId: convos[0].id });
+    fetchAthleteConversations(athleteUid).then(async convos => {
+      const enriched = await Promise.all(convos.map(async c => {
+        const scoutSnap = await getDoc(doc(db, "scouts", c.scoutUid));
+        const scoutName = scoutSnap.exists() ? scoutSnap.data().displayName : null;
+        return { scoutUid: c.scoutUid, convId: c.id, scoutName };
+      }));
+      setThreads(enriched);
+      if (enriched.length > 0) setSelected(enriched[0]);
     });
   }, [athleteUid]);
 
@@ -1117,8 +1124,22 @@ function AthleteMessages({ athleteUid }) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  async function sendReply() {
+    if (!input.trim() || !selected || sending) return;
+    setSending(true);
+    try {
+      await setDoc(doc(collection(db, "conversations", selected.convId, "messages")), {
+        text: input.trim(), senderUid: athleteUid, timestamp: serverTimestamp(),
+      });
+      setInput("");
+    } finally {
+      setSending(false);
+    }
+  }
+
   return (
     <div style={{ display:"flex", height:"calc(100vh - 61px)", gap:0 }}>
+      {/* Thread list */}
       <div style={{ width:240, flexShrink:0, borderRight:"1px solid #162438", padding:"20px 12px", display:"flex", flexDirection:"column", gap:6 }}>
         <div style={{ fontWeight:800, fontSize:15, marginBottom:8, paddingLeft:4 }}>Messages</div>
         {threads.length === 0 && <div style={{ color:"#4d6a8a", fontSize:13, paddingLeft:4 }}>No messages from scouts yet.</div>}
@@ -1127,28 +1148,44 @@ function AthleteMessages({ athleteUid }) {
             style={{ padding:"10px 12px", borderRadius:12, cursor:"pointer", fontWeight:700, fontSize:13,
               background: selected?.convId === t.convId ? "rgba(99,102,241,.12)" : "rgba(255,255,255,.03)",
               border:`1px solid ${selected?.convId === t.convId ? "rgba(99,102,241,.25)" : "#0f1e30"}` }}>
-            Scout: {t.scoutUid.slice(0, 8)}…
+            {t.scoutName || "Scout: " + t.scoutUid.slice(0, 8) + "…"}
           </div>
         ))}
       </div>
 
+      {/* Chat area */}
       {selected ? (
         <div style={{ flex:1, display:"flex", flexDirection:"column" }}>
           <div style={{ padding:"14px 20px", borderBottom:"1px solid #162438", fontWeight:800 }}>
-            Message from Scout
+            {threads.find(t => t.convId === selected.convId)?.scoutName || "Scout"}
           </div>
           <div style={{ flex:1, padding:16, display:"flex", flexDirection:"column", gap:10, overflowY:"auto" }}>
             {messages.length === 0 && <div style={{ color:"#4d6a8a", fontSize:14, textAlign:"center", marginTop:"auto" }}>No messages yet.</div>}
             {messages.map(m => (
-              <div key={m.id} style={{ alignSelf:"flex-start", maxWidth:"70%", background:"rgba(255,255,255,.06)",
-                border:"1px solid #22304a", borderRadius:"14px 14px 14px 4px", padding:"10px 14px" }}>
+              <div key={m.id} style={{
+                alignSelf: m.senderUid === athleteUid ? "flex-end" : "flex-start",
+                maxWidth:"70%",
+                background: m.senderUid === athleteUid ? "rgba(99,102,241,.15)" : "rgba(255,255,255,.06)",
+                border:`1px solid ${m.senderUid === athleteUid ? "rgba(99,102,241,.25)" : "#22304a"}`,
+                borderRadius: m.senderUid === athleteUid ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+                padding:"10px 14px" }}>
                 <div style={{ fontSize:14, lineHeight:1.5 }}>{m.text}</div>
-                <div style={{ color:"#4d6a8a", fontSize:11, marginTop:4 }}>
+                <div style={{ color:"#4d6a8a", fontSize:11, marginTop:4, textAlign: m.senderUid === athleteUid ? "right" : "left" }}>
                   {m.timestamp?.toDate?.()?.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) || "Just now"}
                 </div>
               </div>
             ))}
             <div ref={bottomRef} />
+          </div>
+          <div style={{ padding:12, borderTop:"1px solid #162438", display:"flex", gap:10 }}>
+            <input value={input} onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendReply()}
+              placeholder="Reply…"
+              style={{ flex:1, background:"rgba(255,255,255,.05)", border:"1px solid #22304a", borderRadius:10, color:"#f0f6ff", fontSize:14, padding:"10px 14px", fontFamily:"inherit", outline:"none" }} />
+            <button onClick={sendReply} disabled={sending}
+              style={{ background:"linear-gradient(135deg,#4f46e5,#6366f1)", border:"none", color:"#fff", borderRadius:10, padding:"10px 18px", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit", opacity: sending ? .6 : 1 }}>
+              {sending ? "…" : "Send"}
+            </button>
           </div>
         </div>
       ) : (
