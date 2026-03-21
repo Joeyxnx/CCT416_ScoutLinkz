@@ -24,7 +24,7 @@ import {
 } from "firebase/auth";
 import {
   getFirestore,
-  doc, getDoc, setDoc, updateDoc, deleteDoc,
+  doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc,
   collection, getDocs, query, orderBy, where, serverTimestamp, onSnapshot,
 } from "firebase/firestore";
 
@@ -72,10 +72,14 @@ export async function fetchScoutProfile(scoutUid) {
   return snap.exists() ? snap.data() : null;
 }
 // Messaging
-export async function fetchConversations(scoutUid) {
+export async function fetchConversations(userUid) {
   const snap = await getDocs(collection(db, "conversations"));
+
   return snap.docs
-    .filter(d => d.id.startsWith(scoutUid + "_"))
+    .filter(d => {
+      const [uid1, uid2] = d.id.split("_");
+      return uid1 === userUid || uid2 === userUid;
+    })
     .map(d => ({ id: d.id, ...d.data() }));
 }
 
@@ -83,8 +87,10 @@ export async function sendMessage(scoutUid, athleteUid, text) {
   const convId = `${scoutUid}_${athleteUid}`;
   const convRef = doc(db, "conversations", convId);
   await setDoc(convRef, { scoutUid, athleteUid, updatedAt: serverTimestamp() }, { merge: true });
-  await setDoc(doc(collection(db, "conversations", convId, "messages")), {
-    text, senderUid: scoutUid, timestamp: serverTimestamp(),
+  await addDoc(collection(db, "conversations", convId, "messages"), {
+    text,
+    senderUid: scoutUid,
+    timestamp: serverTimestamp(),
   });
 }
 
