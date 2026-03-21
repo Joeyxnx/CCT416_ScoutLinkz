@@ -472,7 +472,7 @@ function StatusDropdown({ status, onChange }) {
 // ═══════════════════════════════════════════════════════════════
 // ATHLETE PROFILE VIEW (full detail)
 // ═══════════════════════════════════════════════════════════════
-function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleSave, onBack }) {
+function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleSave, onBack, onMessage }) {
   const [lightbox, setLightbox] = useState(null);
   const status = statuses[athlete.id] || "none";
   const saved  = savedIds.includes(athlete.id);
@@ -573,9 +573,14 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
             <div style={{ color:"#4d6a8a",fontSize:13 }}>Phone</div>
             <div style={{ fontWeight:700,marginTop:3 }}>{athlete.phone}</div>
           </div>
-          <a href={`mailto:${athlete.email}`} style={{ display:"flex",alignItems:"center",justifyContent:"center",padding:"10px 14px",borderRadius:12,background:"rgba(79,70,229,.9)",border:"none",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",textDecoration:"none" }}>
-            Contact Athlete
+          <a href={`mailto:${athlete.email}`}
+            style={{ display:"flex",alignItems:"center",gap:7,padding:"8px 14px",borderRadius:10,border:"1px solid rgba(99,102,241,.25)",background:"rgba(99,102,241,.08)",color:"#c7d2fe",fontWeight:700,fontSize:13,cursor:"pointer",textDecoration:"none" }}>
+            ✉ Email
           </a>
+          <button onClick={() => onMessage(athlete)}
+            style={{ display:"flex",alignItems:"center",gap:7,padding:"8px 14px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#4f46e5,#6366f1)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit" }}>
+            💬 Message
+          </button>
         </div>
 
         {/* Highlights */}
@@ -837,7 +842,7 @@ function PageSaved({ athletes, statuses, savedIds, onViewAthlete, onToggleSave }
   );
 }
 
-function PageMessages({ athletes, user }) {
+function PageMessages({ athletes, user, initialAthlete }) {
   const [selected, setSelected]   = useState(null);
   const [input, setInput]         = useState("");
   const [messages, setMessages]   = useState([]);
@@ -854,9 +859,22 @@ function PageMessages({ athletes, user }) {
         return { athleteId: c.athleteUid, athleteName: athlete?.name || "Unknown", sport: athlete?.sport, position: athlete?.position };
       });
       setThreads(enriched);
-      if (enriched.length > 0 && !selected) setSelected(enriched[0]);
+      if (initialAthlete) {
+        const existing = enriched.find(t => t.athleteId === initialAthlete.id);
+        if (existing) {
+          setSelected(existing);
+        } else {
+          const newThread = { athleteId: initialAthlete.id, athleteName: initialAthlete.name, sport: initialAthlete.sport, position: initialAthlete.position };
+          setThreads(prev => [...prev, newThread]);
+          setSelected(newThread);
+        }
+      } else if (enriched.length > 0 && !selected) {
+        setSelected(enriched[0]);
+      }
     });
   }, [user, athletes]);
+
+  
 
   // Real-time message listener
   useEffect(() => {
@@ -1336,6 +1354,7 @@ function ScoutDashboard({ scoutProfile }) {
   const [athletes, setAthletes] = useState([]);
   const [dbLoading, setDbLoading] = useState(true);
   const [viewedIds, setViewedIds] = useState([]);
+  const [messageTarget, setMessageTarget] = useState(null);
 
   // Load real athletes from Firestore, fall back to demo data
   useEffect(() => {
@@ -1423,7 +1442,7 @@ function ScoutDashboard({ scoutProfile }) {
           {NAV.map(item => {
             const active = page === item.key || (page === "profile" && item.key === "discover");
             return (
-              <div key={item.key} onClick={() => { setPage(item.key); setViewingAthlete(null); setSearch(""); }}
+              <div key={item.key} onClick={() => { setPage(item.key); setViewingAthlete(null); setSearch(""); setMessageTarget(null); }}
                 style={{ display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:10,cursor:"pointer",color:active?"#c7d2fe":"#4d6a8a",fontSize:14,fontWeight:active?700:500,background:active?"rgba(99,102,241,.12)":"transparent",border:active?"1px solid rgba(99,102,241,.2)":"1px solid transparent",transition:"all .15s",letterSpacing:"-.01em" }}>
                 <span style={{ fontSize:16,width:22,textAlign:"center" }}>{item.icon}</span>
                 {item.label}
@@ -1505,11 +1524,12 @@ function ScoutDashboard({ scoutProfile }) {
         {page === "dashboard" && <PageDashboard athletes={athletes} statuses={statuses} savedIds={savedIds} viewedIds={viewedIds} onViewAthlete={handleViewAthlete} />}
         {page === "discover"  && <PageDiscover  athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} defaultSports={defaultSports} />}
         {page === "saved"     && <PageSaved     athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} />}
-        {page === "messages"  && <PageMessages  athletes={athletes} user={user} />}
+        {page === "messages"  && <PageMessages  athletes={athletes} user={user} initialAthlete={messageTarget} />}
         {page === "settings"  && <PageSettings  user={user} />}
-        {page === "profile"   && viewingAthlete && (
+        {page === "profile" && viewingAthlete && (
           <AthleteProfile athlete={viewingAthlete} statuses={statuses} savedIds={savedIds}
-            onStatusChange={handleStatusChange} onToggleSave={handleToggleSave} onBack={handleBack} />
+            onStatusChange={handleStatusChange} onToggleSave={handleToggleSave} onBack={handleBack}
+            onMessage={a => { setMessageTarget(a); setPage("messages"); setViewingAthlete(null); }} />
         )}
       </main>
     </div>
