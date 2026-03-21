@@ -73,14 +73,27 @@ export async function fetchScoutProfile(scoutUid) {
 }
 // Messaging
 export async function fetchConversations(userUid) {
-  const snap = await getDocs(collection(db, "conversations"));
+  const q = query(
+    collection(db, "conversations"),
+    where("scoutUid", "==", userUid)
+  );
 
-  return snap.docs
-    .filter(d => {
-      const [uid1, uid2] = d.id.split("_");
-      return uid1 === userUid || uid2 === userUid;
-    })
-    .map(d => ({ id: d.id, ...d.data() }));
+  const q2 = query(
+    collection(db, "conversations"),
+    where("athleteUid", "==", userUid)
+  );
+
+  const [snap1, snap2] = await Promise.all([
+    getDocs(q),
+    getDocs(q2)
+  ]);
+
+  const docs = [
+    ...snap1.docs,
+    ...snap2.docs
+  ];
+
+  return docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 export async function sendMessage(scoutUid, athleteUid, text) {
