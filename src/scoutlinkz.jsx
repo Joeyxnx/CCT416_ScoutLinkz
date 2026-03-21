@@ -25,7 +25,7 @@ import {
 import {
   getFirestore,
   doc, getDoc, setDoc, updateDoc, deleteDoc,
-  collection, getDocs, query, orderBy, serverTimestamp, onSnapshot,
+  collection, getDocs, query, orderBy, where, serverTimestamp, onSnapshot,
 } from "firebase/firestore";
 
 // ─── FIREBASE CONFIG ─────────────────────────────────────────
@@ -98,10 +98,10 @@ export function subscribeToMessages(scoutUid, athleteUid, callback) {
 }
 
 export async function fetchAthleteConversations(athleteUid) {
-  const snap = await getDocs(collection(db, "conversations"));
-  return snap.docs
-    .filter(d => d.id.endsWith("_" + athleteUid))
-    .map(d => ({ id: d.id, ...d.data() }));
+  const snap = await getDocs(
+    query(collection(db, "conversations"), where("athleteUid", "==", athleteUid))
+  );
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 // ────────────────────────────────────────────────────────────
