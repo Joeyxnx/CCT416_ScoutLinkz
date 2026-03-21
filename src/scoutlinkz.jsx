@@ -789,6 +789,54 @@ function PageDiscover({ athletes, statuses, savedIds, onViewAthlete, onToggleSav
 // ═══════════════════════════════════════════════════════════════
 // PAGE: SAVED
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// PAGE: SAVED
+// ═══════════════════════════════════════════════════════════════
+function PageSaved({ athletes, statuses, savedIds, onViewAthlete, onToggleSave }) {
+  const saved = athletes.filter(a => savedIds.includes(a.id));
+  return (
+    <div style={{ padding:"0 32px 40px" }}>
+      <div style={{ padding:"28px 0 20px" }}>
+        <h2 style={{ fontWeight:800,fontSize:24,margin:0 }}>Saved Athletes</h2>
+        <p style={{ color:"#4d6a8a",fontSize:14,marginTop:4 }}>{saved.length} athlete{saved.length!==1?"s":""} saved</p>
+      </div>
+      {saved.length === 0 ? (
+        <div style={{ textAlign:"center",padding:"80px 0",color:"#4d6a8a" }}>
+          <div style={{ fontSize:48,marginBottom:16 }}>☆</div>
+          <div style={{ fontWeight:700,fontSize:16 }}>No saved athletes yet</div>
+          <div style={{ marginTop:8,fontSize:14 }}>Star athletes in Discover to save them here</div>
+        </div>
+      ) : (
+        <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
+          {saved.map(a => {
+            const st = statuses[a.id] || "none";
+            return (
+              <div key={a.id} style={{ display:"flex",alignItems:"center",gap:16,background:"rgba(10,21,37,.9)",border:"1px solid #22304a",borderRadius:16,padding:"16px 20px" }}>
+                <div style={{ width:46,height:46,borderRadius:14,background:"rgba(99,102,241,.12)",border:"1px solid rgba(99,102,241,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:16,flexShrink:0 }}>
+                  {a.name.split(" ").map(x=>x[0]).join("")}
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontWeight:800,fontSize:15 }}>{a.name}</div>
+                  <div style={{ color:"#4d6a8a",fontSize:13,marginTop:2 }}>{a.sport} · {a.position} · {a.location}</div>
+                </div>
+                <StatusBadge status={st} />
+                <button onClick={() => onToggleSave(a.id)}
+                  style={{ background:"rgba(245,158,11,.1)",border:"1px solid rgba(245,158,11,.3)",color:"#fbbf24",borderRadius:9,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
+                  ★ Remove
+                </button>
+                <button onClick={() => onViewAthlete(a)}
+                  style={{ background:"rgba(99,102,241,.1)",border:"1px solid rgba(99,102,241,.25)",color:"#c7d2fe",borderRadius:9,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
+                  View Profile →
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PageMessages({ athletes, user }) {
   const [selected, setSelected]   = useState(null);
   const [input, setInput]         = useState("");
