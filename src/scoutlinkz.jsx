@@ -25,7 +25,7 @@ import {
 import {
   getFirestore,
   doc, getDoc, setDoc, updateDoc, deleteDoc,
-  collection, getDocs, query, orderBy, serverTimestamp,
+  collection, getDocs, query, orderBy, serverTimestamp, onSnapshot,
 } from "firebase/firestore";
 
 // ─── FIREBASE CONFIG ─────────────────────────────────────────
@@ -71,6 +71,39 @@ export async function fetchScoutProfile(scoutUid) {
   const snap = await getDoc(doc(db, "scouts", scoutUid));
   return snap.exists() ? snap.data() : null;
 }
+// Messaging
+export async function fetchConversations(scoutUid) {
+  const snap = await getDocs(collection(db, "conversations"));
+  return snap.docs
+    .filter(d => d.id.startsWith(scoutUid + "_"))
+    .map(d => ({ id: d.id, ...d.data() }));
+}
+
+export async function sendMessage(scoutUid, athleteUid, text) {
+  const convId = `${scoutUid}_${athleteUid}`;
+  const convRef = doc(db, "conversations", convId);
+  await setDoc(convRef, { scoutUid, athleteUid, updatedAt: serverTimestamp() }, { merge: true });
+  await setDoc(doc(collection(db, "conversations", convId, "messages")), {
+    text, senderUid: scoutUid, timestamp: serverTimestamp(),
+  });
+}
+
+export function subscribeToMessages(scoutUid, athleteUid, callback) {
+  const convId = `${scoutUid}_${athleteUid}`;
+  const q = query(
+    collection(db, "conversations", convId, "messages"),
+    orderBy("timestamp", "asc")
+  );
+  return onSnapshot(q, snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+}
+
+export async function fetchAthleteConversations(athleteUid) {
+  const snap = await getDocs(collection(db, "conversations"));
+  return snap.docs
+    .filter(d => d.id.endsWith("_" + athleteUid))
+    .map(d => ({ id: d.id, ...d.data() }));
+}
+
 // ────────────────────────────────────────────────────────────
 
 // ─── AUTH CONTEXT ────────────────────────────────────────────
@@ -756,123 +789,140 @@ function PageDiscover({ athletes, statuses, savedIds, onViewAthlete, onToggleSav
 // ═══════════════════════════════════════════════════════════════
 // PAGE: SAVED
 // ═══════════════════════════════════════════════════════════════
-function PageSaved({ athletes, statuses, savedIds, onViewAthlete, onToggleSave }) {
-  const saved = athletes.filter(a => savedIds.includes(a.id));
-  return (
-    <div style={{ padding:"0 32px 40px" }}>
-      <div style={{ padding:"28px 0 20px" }}>
-        <h2 style={{ fontWeight:800,fontSize:24,margin:0 }}>Saved Athletes</h2>
-        <p style={{ color:"#4d6a8a",fontSize:14,marginTop:4 }}>{saved.length} athlete{saved.length!==1?"s":""} saved</p>
-      </div>
-      {saved.length === 0 ? (
-        <div style={{ textAlign:"center",padding:"80px 0",color:"#4d6a8a" }}>
-          <div style={{ fontSize:48,marginBottom:16 }}>☆</div>
-          <div style={{ fontWeight:700,fontSize:16 }}>No saved athletes yet</div>
-          <div style={{ marginTop:8,fontSize:14 }}>Star athletes in Discover to save them here</div>
-        </div>
-      ) : (
-        <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
-          {saved.map(a => {
-            const st = statuses[a.id] || "none";
-            return (
-              <div key={a.id} style={{ display:"flex",alignItems:"center",gap:16,background:"rgba(10,21,37,.9)",border:"1px solid #22304a",borderRadius:16,padding:"16px 20px" }}>
-                <div style={{ width:46,height:46,borderRadius:14,background:"rgba(99,102,241,.12)",border:"1px solid rgba(99,102,241,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:16,flexShrink:0 }}>
-                  {a.name.split(" ").map(x=>x[0]).join("")}
-                </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontWeight:800,fontSize:15 }}>{a.name}</div>
-                  <div style={{ color:"#4d6a8a",fontSize:13,marginTop:2 }}>{a.sport} · {a.position} · {a.location}</div>
-                </div>
-                <StatusBadge status={st} />
-                <button onClick={() => onToggleSave(a.id)}
-                  style={{ background:"rgba(245,158,11,.1)",border:"1px solid rgba(245,158,11,.3)",color:"#fbbf24",borderRadius:9,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
-                  ★ Remove
-                </button>
-                <button onClick={() => onViewAthlete(a)}
-                  style={{ background:"rgba(99,102,241,.1)",border:"1px solid rgba(99,102,241,.25)",color:"#c7d2fe",borderRadius:9,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
-                  View Profile →
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
+function PageMessages({ athletes, user }) {
+  const [selected, setSelected]   = useState(null);
+  const [input, setInput]         = useState("");
+  const [messages, setMessages]   = useState([]);
+  const [threads, setThreads]     = useState([]); // {athleteId, athleteName, lastMsg}
+  const [sending, setSending]     = useState(false);
+  const bottomRef = useRef(null);
 
-// ═══════════════════════════════════════════════════════════════
-// PAGE: MESSAGES (draft UI)
-// ═══════════════════════════════════════════════════════════════
-function PageMessages({ athletes }) {
-  const [selected, setSelected] = useState(athletes[0]);
-  const [input, setInput]       = useState("");
-  const [threads, setThreads]   = useState({
-    1: [{ from:"scout", text:"Hi Devin, I watched your highlight reel — impressive saves. Would love to connect.", time:"2:14 PM" }],
-    2: [{ from:"scout", text:"Marcus, your court vision is exceptional. Are you open to a conversation?", time:"Yesterday" }],
-  });
+  // Load existing conversations for this scout
+  useEffect(() => {
+    if (!user) return;
+    fetchConversations(user.uid).then(convos => {
+      const enriched = convos.map(c => {
+        const athlete = athletes.find(a => a.id === c.athleteUid);
+        return { athleteId: c.athleteUid, athleteName: athlete?.name || "Unknown", sport: athlete?.sport, position: athlete?.position };
+      });
+      setThreads(enriched);
+      if (enriched.length > 0 && !selected) setSelected(enriched[0]);
+    });
+  }, [user, athletes]);
 
-  function send() {
-    if (!input.trim()) return;
-    const msg = { from:"scout", text:input, time:"Just now" };
-    setThreads(t => ({ ...t, [selected.id]: [...(t[selected.id]||[]), msg] }));
-    setInput("");
+  // Real-time message listener
+  useEffect(() => {
+    if (!user || !selected) return;
+    const unsub = subscribeToMessages(user.uid, selected.athleteId, setMessages);
+    return unsub;
+  }, [user, selected]);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  async function send() {
+    if (!input.trim() || !selected || sending) return;
+    setSending(true);
+    try {
+      await sendMessage(user.uid, selected.athleteId, input.trim());
+      setInput("");
+      // Refresh thread list to show last message
+      const convos = await fetchConversations(user.uid);
+      const enriched = convos.map(c => {
+        const athlete = athletes.find(a => a.id === c.athleteUid);
+        return { athleteId: c.athleteUid, athleteName: athlete?.name || "Unknown", sport: athlete?.sport, position: athlete?.position };
+      });
+      setThreads(enriched);
+    } finally {
+      setSending(false);
+    }
   }
 
-  const msgs = threads[selected?.id] || [];
+  // Start a new conversation from Discover/Profile
+  function startThread(athlete) {
+    const existing = threads.find(t => t.athleteId === athlete.id);
+    if (existing) { setSelected(existing); return; }
+    const newThread = { athleteId: athlete.id, athleteName: athlete.name, sport: athlete.sport, position: athlete.position };
+    setThreads(prev => [...prev, newThread]);
+    setSelected(newThread);
+  }
 
   return (
-    <div style={{ display:"flex",height:"calc(100vh - 0px)",padding:"24px 32px 32px",gap:16 }}>
+    <div style={{ display:"flex", height:"calc(100vh - 61px)", padding:"0", gap:0 }}>
       {/* Thread list */}
-      <div style={{ width:240,flexShrink:0,display:"flex",flexDirection:"column",gap:8 }}>
-        <div style={{ fontWeight:800,fontSize:16,marginBottom:8 }}>Messages</div>
-        {athletes.slice(0,5).map(a => (
-          <div key={a.id} onClick={() => setSelected(a)}
-            style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,cursor:"pointer",background:selected?.id===a.id?"rgba(99,102,241,.12)":"rgba(255,255,255,.03)",border:`1px solid ${selected?.id===a.id?"rgba(99,102,241,.25)":"#0f1e30"}`,transition:"all .15s" }}>
-            <div style={{ width:34,height:34,borderRadius:10,background:"rgba(99,102,241,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:12,flexShrink:0 }}>
-              {a.name.split(" ").map(x=>x[0]).join("")}
+      <div style={{ width:260, flexShrink:0, display:"flex", flexDirection:"column", borderRight:"1px solid #162438", padding:"20px 12px", gap:6, overflowY:"auto" }}>
+        <div style={{ fontWeight:800, fontSize:15, marginBottom:8, paddingLeft:4 }}>Messages</div>
+        {threads.length === 0 && (
+          <div style={{ color:"#4d6a8a", fontSize:13, padding:"12px 4px", lineHeight:1.6 }}>
+            No conversations yet. Contact an athlete from their profile to start.
+          </div>
+        )}
+        {threads.map(t => (
+          <div key={t.athleteId} onClick={() => setSelected(t)}
+            style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:12, cursor:"pointer",
+              background: selected?.athleteId === t.athleteId ? "rgba(99,102,241,.12)" : "rgba(255,255,255,.03)",
+              border: `1px solid ${selected?.athleteId === t.athleteId ? "rgba(99,102,241,.25)" : "#0f1e30"}` }}>
+            <div style={{ width:34, height:34, borderRadius:10, background:"rgba(99,102,241,.12)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, fontSize:12, flexShrink:0 }}>
+              {t.athleteName.split(" ").map(x => x[0]).join("")}
             </div>
             <div style={{ minWidth:0 }}>
-              <div style={{ fontWeight:700,fontSize:13 }}>{a.name}</div>
-              <div style={{ color:"#4d6a8a",fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
-                {(threads[a.id]||[]).length > 0 ? threads[a.id].slice(-1)[0].text.slice(0,30)+"…" : "No messages yet"}
-              </div>
+              <div style={{ fontWeight:700, fontSize:13 }}>{t.athleteName}</div>
+              <div style={{ color:"#4d6a8a", fontSize:11 }}>{t.sport} · {t.position}</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* Chat area */}
-      <div style={{ flex:1,display:"flex",flexDirection:"column",background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:18,overflow:"hidden" }}>
-        <div style={{ padding:"14px 18px",borderBottom:"1px solid #22304a",display:"flex",alignItems:"center",gap:12 }}>
-          <div style={{ width:36,height:36,borderRadius:10,background:"rgba(99,102,241,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:13 }}>
-            {selected?.name.split(" ").map(x=>x[0]).join("")}
-          </div>
-          <div>
-            <div style={{ fontWeight:800 }}>{selected?.name}</div>
-            <div style={{ color:"#4d6a8a",fontSize:12 }}>{selected?.sport} · {selected?.position}</div>
-          </div>
-        </div>
-        <div style={{ flex:1,padding:16,display:"flex",flexDirection:"column",gap:10,overflowY:"auto",justifyContent:msgs.length===0?"center":"flex-end" }}>
-          {msgs.length === 0 && <div style={{ textAlign:"center",color:"#4d6a8a",fontSize:14 }}>No messages yet. Say hello!</div>}
-          {msgs.map((m, i) => (
-            <div key={i} style={{ alignSelf:"flex-end",maxWidth:"70%",background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.25)",borderRadius:"14px 14px 4px 14px",padding:"10px 14px" }}>
-              <div style={{ fontSize:14,lineHeight:1.5 }}>{m.text}</div>
-              <div style={{ color:"#4d6a8a",fontSize:11,marginTop:4,textAlign:"right" }}>{m.time}</div>
+      {selected ? (
+        <div style={{ flex:1, display:"flex", flexDirection:"column" }}>
+          <div style={{ padding:"14px 20px", borderBottom:"1px solid #162438", display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ width:36, height:36, borderRadius:10, background:"rgba(99,102,241,.12)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, fontSize:13 }}>
+              {selected.athleteName.split(" ").map(x => x[0]).join("")}
             </div>
-          ))}
+            <div>
+              <div style={{ fontWeight:800 }}>{selected.athleteName}</div>
+              <div style={{ color:"#4d6a8a", fontSize:12 }}>{selected.sport} · {selected.position}</div>
+            </div>
+          </div>
+
+          <div style={{ flex:1, padding:16, display:"flex", flexDirection:"column", gap:10, overflowY:"auto" }}>
+            {messages.length === 0 && (
+              <div style={{ textAlign:"center", color:"#4d6a8a", fontSize:14, marginTop:"auto" }}>No messages yet. Say hello!</div>
+            )}
+            {messages.map(m => (
+              <div key={m.id} style={{ alignSelf: m.senderUid === user.uid ? "flex-end" : "flex-start",
+                maxWidth:"70%", background: m.senderUid === user.uid ? "rgba(99,102,241,.15)" : "rgba(255,255,255,.06)",
+                border:`1px solid ${m.senderUid === user.uid ? "rgba(99,102,241,.25)" : "#22304a"}`,
+                borderRadius: m.senderUid === user.uid ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+                padding:"10px 14px" }}>
+                <div style={{ fontSize:14, lineHeight:1.5 }}>{m.text}</div>
+                <div style={{ color:"#4d6a8a", fontSize:11, marginTop:4, textAlign: m.senderUid === user.uid ? "right" : "left" }}>
+                  {m.timestamp?.toDate?.()?.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) || "Just now"}
+                </div>
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+
+          <div style={{ padding:12, borderTop:"1px solid #162438", display:"flex", gap:10 }}>
+            <input value={input} onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
+              placeholder={`Message ${selected.athleteName}…`}
+              style={{ flex:1, background:"rgba(255,255,255,.05)", border:"1px solid #22304a", borderRadius:10, color:"#f0f6ff", fontSize:14, padding:"10px 14px", fontFamily:"inherit", outline:"none" }} />
+            <button onClick={send} disabled={sending}
+              style={{ background:"linear-gradient(135deg,#4f46e5,#6366f1)", border:"none", color:"#fff", borderRadius:10, padding:"10px 18px", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit", opacity: sending ? .6 : 1 }}>
+              {sending ? "…" : "Send"}
+            </button>
+          </div>
         </div>
-        <div style={{ padding:12,borderTop:"1px solid #22304a",display:"flex",gap:10 }}>
-          <input value={input} onChange={e=>setInput(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&send()}
-            placeholder={`Message ${selected?.name}…`}
-            style={{ flex:1,background:"rgba(255,255,255,.05)",border:"1px solid #22304a",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"10px 14px",fontFamily:"inherit",outline:"none" }} />
-          <button onClick={send}
-            style={{ background:"linear-gradient(135deg,#4f46e5,#6366f1)",border:"none",color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit" }}>
-            Send
-          </button>
+      ) : (
+        <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:"#4d6a8a", fontSize:14 }}>
+          Select a conversation or contact an athlete from their profile.
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -960,12 +1010,82 @@ function PageSettings({ user }) {
   );
 }
 
+function AthleteMessages({ athleteUid }) {
+  const [threads, setThreads]   = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    fetchAthleteConversations(athleteUid).then(convos => {
+      setThreads(convos.map(c => ({ scoutUid: c.scoutUid, convId: c.id })));
+      if (convos.length > 0) setSelected({ scoutUid: convos[0].scoutUid, convId: convos[0].id });
+    });
+  }, [athleteUid]);
+
+  useEffect(() => {
+    if (!selected) return;
+    const q = query(
+      collection(db, "conversations", selected.convId, "messages"),
+      orderBy("timestamp", "asc")
+    );
+    const unsub = onSnapshot(q, snap => setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    return unsub;
+  }, [selected]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  return (
+    <div style={{ display:"flex", height:"calc(100vh - 61px)", gap:0 }}>
+      <div style={{ width:240, flexShrink:0, borderRight:"1px solid #162438", padding:"20px 12px", display:"flex", flexDirection:"column", gap:6 }}>
+        <div style={{ fontWeight:800, fontSize:15, marginBottom:8, paddingLeft:4 }}>Messages</div>
+        {threads.length === 0 && <div style={{ color:"#4d6a8a", fontSize:13, paddingLeft:4 }}>No messages from scouts yet.</div>}
+        {threads.map(t => (
+          <div key={t.convId} onClick={() => setSelected(t)}
+            style={{ padding:"10px 12px", borderRadius:12, cursor:"pointer", fontWeight:700, fontSize:13,
+              background: selected?.convId === t.convId ? "rgba(99,102,241,.12)" : "rgba(255,255,255,.03)",
+              border:`1px solid ${selected?.convId === t.convId ? "rgba(99,102,241,.25)" : "#0f1e30"}` }}>
+            Scout: {t.scoutUid.slice(0, 8)}…
+          </div>
+        ))}
+      </div>
+
+      {selected ? (
+        <div style={{ flex:1, display:"flex", flexDirection:"column" }}>
+          <div style={{ padding:"14px 20px", borderBottom:"1px solid #162438", fontWeight:800 }}>
+            Message from Scout
+          </div>
+          <div style={{ flex:1, padding:16, display:"flex", flexDirection:"column", gap:10, overflowY:"auto" }}>
+            {messages.length === 0 && <div style={{ color:"#4d6a8a", fontSize:14, textAlign:"center", marginTop:"auto" }}>No messages yet.</div>}
+            {messages.map(m => (
+              <div key={m.id} style={{ alignSelf:"flex-start", maxWidth:"70%", background:"rgba(255,255,255,.06)",
+                border:"1px solid #22304a", borderRadius:"14px 14px 14px 4px", padding:"10px 14px" }}>
+                <div style={{ fontSize:14, lineHeight:1.5 }}>{m.text}</div>
+                <div style={{ color:"#4d6a8a", fontSize:11, marginTop:4 }}>
+                  {m.timestamp?.toDate?.()?.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) || "Just now"}
+                </div>
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+        </div>
+      ) : (
+        <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:"#4d6a8a", fontSize:14 }}>
+          Select a conversation.
+        </div>
+      )}
+    </div>
+  );
+}
 // ═══════════════════════════════════════════════════════════════
 // ATHLETE DASHBOARD — view & manage own profile
 // ═══════════════════════════════════════════════════════════════
 function AthleteDashboard({ profile }) {
   const { user, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [athPage, setAthPage] = useState("profile");
   const st = profile;
 
   return (
@@ -985,48 +1105,66 @@ function AthleteDashboard({ profile }) {
       </header>
 
       <main style={{ maxWidth:800, margin:"0 auto", padding:"32px 24px" }}>
-        {/* Profile card */}
-        <div style={{ background:"rgba(10,21,37,.9)",border:"1px solid #162438",borderRadius:20,padding:28,marginBottom:20 }}>
-          <div style={{ display:"flex",alignItems:"flex-start",gap:16,marginBottom:18 }}>
-            <div style={{ width:64,height:64,borderRadius:18,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:22 }}>
-              {st.name?.split(" ").map(x=>x[0]).join("") || "?"}
+        {/* Tab nav */}
+        <div style={{ display:"flex", gap:8, marginBottom:24 }}>
+          {["profile","messages"].map(tab => (
+            <button key={tab} onClick={() => setAthPage(tab)}
+              style={{ padding:"8px 18px", borderRadius:10, border:`1px solid ${athPage===tab?"rgba(99,102,241,.4)":"#162438"}`,
+                background: athPage===tab ? "rgba(99,102,241,.12)" : "transparent",
+                color: athPage===tab ? "#c7d2fe" : "#4d6a8a", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit", textTransform:"capitalize" }}>
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {athPage === "profile" && (
+          <>
+            {/* Profile card */}
+            <div style={{ background:"rgba(10,21,37,.9)",border:"1px solid #162438",borderRadius:20,padding:28,marginBottom:20 }}>
+              <div style={{ display:"flex",alignItems:"flex-start",gap:16,marginBottom:18 }}>
+                <div style={{ width:64,height:64,borderRadius:18,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:22 }}>
+                  {st.name?.split(" ").map(x=>x[0]).join("") || "?"}
+                </div>
+                <div>
+                  <div style={{ fontWeight:800,fontSize:22,letterSpacing:"-.03em" }}>{st.name}</div>
+                  <div style={{ color:"#4d6a8a",fontSize:14,marginTop:4 }}>{st.sport} · {st.position} · Grad {st.gradYear} · {st.location}</div>
+                  <div style={{ display:"flex",gap:8,marginTop:10,flexWrap:"wrap" }}>
+                    {[`GPA ${st.gpa}`,st.height,st.weight,`${st.foot} foot`].filter(Boolean).map(t=>(
+                      <span key={t} style={{ fontSize:12,fontWeight:600,padding:"3px 10px",borderRadius:999,border:"1px solid #162438",background:"rgba(255,255,255,.04)",color:"#4d6a8a" }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <p style={{ color:"#4d6a8a",lineHeight:1.6,margin:0,fontFamily:"'DM Sans',sans-serif" }}>{st.bio}</p>
             </div>
-            <div>
-              <div style={{ fontWeight:800,fontSize:22,letterSpacing:"-.03em" }}>{st.name}</div>
-              <div style={{ color:"#4d6a8a",fontSize:14,marginTop:4 }}>{st.sport} · {st.position} · Grad {st.gradYear} · {st.location}</div>
-              <div style={{ display:"flex",gap:8,marginTop:10,flexWrap:"wrap" }}>
-                {[`GPA ${st.gpa}`,st.height,st.weight,`${st.foot} foot`].filter(Boolean).map(t=>(
-                  <span key={t} style={{ fontSize:12,fontWeight:600,padding:"3px 10px",borderRadius:999,border:"1px solid #162438",background:"rgba(255,255,255,.04)",color:"#4d6a8a" }}>{t}</span>
-                ))}
+
+            {/* Stats */}
+            {st.stats?.length > 0 && (
+              <div style={{ background:"rgba(10,21,37,.9)",border:"1px solid #162438",borderRadius:18,padding:22,marginBottom:20 }}>
+                <div style={{ fontWeight:800,fontSize:15,marginBottom:14,letterSpacing:"-.02em" }}>Your Stats</div>
+                <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10 }}>
+                  {st.stats.map((s,i)=>(
+                    <div key={i} style={{ background:"rgba(255,255,255,.04)",border:"1px solid #162438",borderRadius:12,padding:14 }}>
+                      <div style={{ fontWeight:800,fontSize:20 }}>{s.value}</div>
+                      <div style={{ color:"#4d6a8a",fontSize:12,marginTop:3 }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Status banner */}
+            <div style={{ background:"rgba(99,102,241,.07)",border:"1px dashed rgba(99,102,241,.25)",borderRadius:16,padding:"18px 22px",display:"flex",alignItems:"center",gap:16 }}>
+              <span style={{ fontSize:28 }}>🎯</span>
+              <div>
+                <div style={{ fontWeight:700,fontSize:14,color:"#c7d2fe" }}>Your profile is live</div>
+                <div style={{ color:"#4d6a8a",fontSize:13,marginTop:3,fontFamily:"'DM Sans',sans-serif" }}>Scouts can now discover and contact you. Profile editing coming soon.</div>
               </div>
             </div>
-          </div>
-          <p style={{ color:"#4d6a8a",lineHeight:1.6,margin:0,fontFamily:"'DM Sans',sans-serif" }}>{st.bio}</p>
-        </div>
-
-        {/* Stats */}
-        {st.stats?.length > 0 && (
-          <div style={{ background:"rgba(10,21,37,.9)",border:"1px solid #162438",borderRadius:18,padding:22,marginBottom:20 }}>
-            <div style={{ fontWeight:800,fontSize:15,marginBottom:14,letterSpacing:"-.02em" }}>Your Stats</div>
-            <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10 }}>
-              {st.stats.map((s,i)=>(
-                <div key={i} style={{ background:"rgba(255,255,255,.04)",border:"1px solid #162438",borderRadius:12,padding:14 }}>
-                  <div style={{ fontWeight:800,fontSize:20 }}>{s.value}</div>
-                  <div style={{ color:"#4d6a8a",fontSize:12,marginTop:3 }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          </>
         )}
 
-        {/* Status banner */}
-        <div style={{ background:"rgba(99,102,241,.07)",border:"1px dashed rgba(99,102,241,.25)",borderRadius:16,padding:"18px 22px",display:"flex",alignItems:"center",gap:16 }}>
-          <span style={{ fontSize:28 }}>🎯</span>
-          <div>
-            <div style={{ fontWeight:700,fontSize:14,color:"#c7d2fe" }}>Your profile is live</div>
-            <div style={{ color:"#4d6a8a",fontSize:13,marginTop:3,fontFamily:"'DM Sans',sans-serif" }}>Scouts can now discover and contact you. Profile editing coming soon.</div>
-          </div>
-        </div>
+        {athPage === "messages" && <AthleteMessages athleteUid={user.uid} />}
       </main>
     </div>
   );
@@ -1319,7 +1457,7 @@ function ScoutDashboard({ scoutProfile }) {
         {page === "dashboard" && <PageDashboard athletes={athletes} statuses={statuses} savedIds={savedIds} viewedIds={viewedIds} onViewAthlete={handleViewAthlete} />}
         {page === "discover"  && <PageDiscover  athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} defaultSports={defaultSports} />}
         {page === "saved"     && <PageSaved     athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} />}
-        {page === "messages"  && <PageMessages  athletes={athletes} />}
+        {page === "messages"  && <PageMessages  athletes={athletes} user={user} />}
         {page === "settings"  && <PageSettings  user={user} />}
         {page === "profile"   && viewingAthlete && (
           <AthleteProfile athlete={viewingAthlete} statuses={statuses} savedIds={savedIds}
