@@ -874,7 +874,21 @@ function PageMessages({ athletes, user, initialAthlete }) {
     });
   }, [user, athletes]);
 
-  
+// Handle initialAthlete changes (navigation from profile)
+useEffect(() => {
+  if (!initialAthlete) return;
+  const existing = threads.find(t => t.athleteId === initialAthlete.id);
+  if (existing) {
+    setSelected(existing);
+  } else {
+    const newThread = { athleteId: initialAthlete.id, athleteName: initialAthlete.name, sport: initialAthlete.sport, position: initialAthlete.position };
+    setThreads(prev => {
+      const alreadyThere = prev.find(t => t.athleteId === initialAthlete.id);
+      return alreadyThere ? prev : [...prev, newThread];
+    });
+    setSelected(newThread);
+  }
+}, [initialAthlete]);  
 
   // Real-time message listener
   useEffect(() => {
