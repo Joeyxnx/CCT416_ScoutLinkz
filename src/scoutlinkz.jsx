@@ -1147,8 +1147,10 @@ function AthleteMessages({ athleteUid }) {
     if (!input.trim() || !selected || sending) return;
     setSending(true);
     try {
-      await setDoc(doc(collection(db, "conversations", selected.convId, "messages")), {
-        text: input.trim(), senderUid: athleteUid, timestamp: serverTimestamp(),
+      await addDoc(collection(db, "conversations", selected.convId, "messages"), {
+        text: input.trim(),
+        senderUid: athleteUid,
+        timestamp: serverTimestamp(),
       });
       setInput("");
     } finally {
