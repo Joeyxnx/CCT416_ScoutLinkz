@@ -1059,7 +1059,8 @@ function PageSettings({ user, onProfileUpdate }) {
           const d = snap.data();
           if (d.displayName) setName(d.displayName);
           if (d.org)         setOrg(d.org);
-          if (d.role)        setRoleTitle(d.role);
+          if (d.roleTitle)   setRoleTitle(d.roleTitle);
+          else if (d.role && d.role !== "scout") setRoleTitle(d.role);
           if (d.notifications) setNotifStates(d.notifications);
         }
       })
@@ -1072,13 +1073,11 @@ function PageSettings({ user, onProfileUpdate }) {
     setSaving(true); setSaveError("");
     try {
       // Update Firestore scout doc
-      await updateDoc(doc(db, "scouts", user.uid), {
-        displayName: name.trim(),
-        org:         org.trim(),
-        role:        roleTitle.trim(),
+      await setDoc(doc(db, "scouts", user.uid), {
+        roleTitle:     roleTitle.trim(),
         notifications: notifStates,
-        updatedAt:   serverTimestamp(),
-      });
+        updatedAt:     serverTimestamp(),
+      }, { merge: true });
       // Update Firebase Auth display name if it changed
       if (name.trim() !== user.displayName) {
         await updateProfile(auth.currentUser, { displayName: name.trim() });
