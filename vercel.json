@@ -1,7 +1,5 @@
 {
   "functions": {
-    "api/chat.cjs": {
-      "runtime": "nodejs@20"
-    }
+    "api/chat.cjs": {}
   }
 }
