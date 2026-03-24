@@ -29,30 +29,6 @@ import {
   collection, getDocs, query, orderBy, where, serverTimestamp, onSnapshot,
 } from "firebase/firestore";
 
-function LandingPage({ onStart }) {
-  return (
-    <div style={{ padding: 40, textAlign: "center", color: "white" }}>
-      <h1>ScoutLinkz</h1>
-      <p>Discover talent. Get recruited.</p>
-
-      <button
-        onClick={onStart}
-        style={{
-          marginTop: 20,
-          padding: "12px 20px",
-          background: "#6366f1",
-          border: "none",
-          borderRadius: 8,
-          color: "white",
-          cursor: "pointer"
-        }}
-      >
-        Get Started
-      </button>
-    </div>
-  );
-}
-
 // ─── FIREBASE CONFIG ─────────────────────────────────────────
 const firebaseConfig = {
   apiKey:            "AIzaSyAC1xP96gui1ZbRjBE1MlOhdnbVfZOyfcY",
@@ -2086,8 +2062,6 @@ function AthleteProfileSetup() {
 // ═══════════════════════════════════════════════════════════════
 function AppRouter() {
   const { user, role, loading } = useAuth();
-  const [showLanding, setShowLanding] = useState(true);
-
   const [athleteProfile, setAthleteProfile] = useState(undefined);
   const [scoutProfile,   setScoutProfile]   = useState(undefined);
 
@@ -2103,7 +2077,6 @@ function AppRouter() {
 
   const scoutReady = role === "scout" ? scoutProfile !== undefined : true;
 
-  // LOADING SCREEN (unchanged)
   if (loading || (role === "athlete" && athleteProfile === undefined) || !scoutReady) {
     return (
       <div style={s.loadingScreen}>
@@ -2118,26 +2091,13 @@ function AppRouter() {
     );
   }
 
-  // ✅ LANDING PAGE FIRST
-  if (showLanding && !user) {
-    return <LandingPage onStart={() => setShowLanding(false)} />;
-  }
-
-  // ✅ LOGIN PAGE
-  if (!user) {
-    return <LoginPage />;
-  }
-
-  // 👇 KEEP YOUR EXISTING LOGIC BELOW (DO NOT REMOVE)
-  if (role === "athlete") {
-    return <AthleteApp athleteProfile={athleteProfile} />;
-  }
-
-  if (role === "scout") {
-    return <ScoutApp scoutProfile={scoutProfile} />;
-  }
-
-  return null;
+  if (!user) return <LoginPage />;
+  if (role === "scout" && !scoutProfile?.onboardingComplete)
+    return <ScoutOnboarding onComplete={p => setScoutProfile(prev => ({ ...prev, ...p, onboardingComplete: true }))} />;
+  if (role === "athlete" && !athleteProfile) return <AthleteProfileSetup />;
+  if (role === "athlete" && athleteProfile && !athleteProfile.profileComplete) return <AthleteProfileSetup />;
+  if (role === "athlete" && athleteProfile) return <AthleteDashboard profile={athleteProfile} />;
+  return <ScoutDashboard scoutProfile={scoutProfile} />;
 }
 
 // ─── ROOT EXPORT ─────────────────────────────────────────────
