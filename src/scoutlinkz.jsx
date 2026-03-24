@@ -9,6 +9,7 @@
 // ============================================================ testingg
 
 import { useState, useEffect, useRef, createContext, useContext } from "react";
+import PageAIScout from "./PageAIScout";
 
 // ─── FIREBASE IMPORTS ───────────────────────────────────────
 import { initializeApp } from "firebase/app";
@@ -1488,6 +1489,7 @@ function ScoutDashboard({ scoutProfile }) {
     { key:"saved",     icon:"★",  label:"Saved"     },
     { key:"messages",  icon:"✉",  label:"Messages"  },
     { key:"settings",  icon:"⚙",  label:"Settings"  },
+    { key:"ai", icon:"✦", label:"AI Scout" },
   ];
 
   const pageTitles = { dashboard:"Dashboard", discover:"Discover", saved:"Saved", messages:"Messages", settings:"Settings", profile: viewingAthlete?.name };
@@ -1597,6 +1599,7 @@ function ScoutDashboard({ scoutProfile }) {
         {page === "discover"  && <PageDiscover  athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} defaultSports={defaultSports} />}
         {page === "saved"     && <PageSaved     athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} />}
         {page === "messages"  && <PageMessages  athletes={athletes} user={user} initialAthlete={messageTarget} />}
+        {page === "ai" && <PageAIScout athletes={athletes} onViewAthlete={handleViewAthlete} />}
         {page === "settings"  && <PageSettings  user={user} />}
         {page === "profile" && viewingAthlete && (
           <AthleteProfile athlete={viewingAthlete} statuses={statuses} savedIds={savedIds}
