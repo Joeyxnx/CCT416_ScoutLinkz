@@ -1030,6 +1030,59 @@ useEffect(() => {
 // ═══════════════════════════════════════════════════════════════
 // PAGE: SETTINGS
 // ═══════════════════════════════════════════════════════════════
+const inputStyle = {
+  width: "100%",
+  background: "rgba(255,255,255,.04)",
+  border: "1px solid #22304a",
+  borderRadius: 10,
+  color: "#f0f6ff",
+  fontSize: 14,
+  padding: "10px 14px",
+  fontFamily: "inherit",
+  outline: "none",
+  boxSizing: "border-box"
+};
+
+const disabledInputStyle = {
+  ...inputStyle,
+  background: "rgba(255,255,255,.02)",
+  color: "#4d6a8a",
+  cursor: "not-allowed"
+};
+
+const labelStyle = {
+  color: "#4d6a8a",
+  fontSize: 13,
+  fontWeight: 700,
+  display: "block",
+  marginBottom: 6
+};
+
+const btnStyle = {
+  alignSelf: "flex-start",
+  background: "linear-gradient(135deg,#4f46e5,#6366f1)",
+  border: "none",
+  color: "#fff",
+  borderRadius: 10,
+  padding: "10px 20px",
+  fontWeight: 700,
+  fontSize: 14,
+  cursor: "pointer",
+  fontFamily: "inherit"
+};
+
+const btnSecondary = {
+  marginTop: 18,
+  background: "rgba(99,102,241,.1)",
+  border: "1px solid rgba(99,102,241,.25)",
+  color: "#c7d2fe",
+  borderRadius: 10,
+  padding: "8px 16px",
+  fontWeight: 700,
+  fontSize: 13,
+  cursor: "pointer",
+  fontFamily: "inherit"
+};
 function PageSettings({ user, onProfileUpdate }) {
   const [name,         setName]         = useState(user?.displayName || "");
   const [email,        setEmail]        = useState(user?.email || "");
