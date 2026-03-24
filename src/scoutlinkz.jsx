@@ -1031,9 +1031,17 @@ useEffect(() => {
 // PAGE: SETTINGS
 // ═══════════════════════════════════════════════════════════════
 function PageSettings({ user }) {
-  const [name,  setName]  = useState(user?.displayName || "");
-  const [email, setEmail] = useState(user?.email || "");
-  const [saved, setSaved] = useState(false);
+  const [name,         setName]         = useState(user?.displayName || "");
+  const [email,        setEmail]        = useState(user?.email || "");
+  const [org,          setOrg]          = useState("");
+  const [roleTitle,    setRoleTitle]    = useState("");
+  const [saved,        setSaved]        = useState(false);
+  const [loading,      setLoading]      = useState(true);
+  const [saving,       setSaving]       = useState(false);
+  const [saveError,    setSaveError]    = useState("");
+
+  const DEFAULT_NOTIFS = { 0: true, 1: true, 2: false, 3: false };
+  const [notifStates, setNotifStates] = useState(DEFAULT_NOTIFS);
 
   const notifs = [
     { label: "New athlete profiles",     desc: "Get notified when new athletes join" },
@@ -1041,70 +1049,121 @@ function PageSettings({ user }) {
     { label: "Weekly digest",            desc: "Summary of your scouting activity" },
     { label: "Profile status reminders", desc: "Remind you to update athlete statuses" },
   ];
-  const [notifStates, setNotifStates] = useState({ 0:true, 1:true, 2:false, 3:false });
 
-  function save(e) {
-    e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  // Load from Firestore on mount
+  useEffect(() => {
+    if (!user) return;
+    getDoc(doc(db, "scouts", user.uid))
+      .then(snap => {
+        if (snap.exists()) {
+          const d = snap.data();
+          if (d.displayName) setName(d.displayName);
+          if (d.org)         setOrg(d.org);
+          if (d.role)        setRoleTitle(d.role);
+          if (d.notifications) setNotifStates(d.notifications);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [user]);
+
+  async function save(e) {
+      e?.preventDefault();
+    setSaving(true); setSaveError("");
+    try {
+      // Update Firestore scout doc
+      await updateDoc(doc(db, "scouts", user.uid), {
+        displayName: name.trim(),
+        org:         org.trim(),
+        role:        roleTitle.trim(),
+        notifications: notifStates,
+        updatedAt:   serverTimestamp(),
+      });
+      // Update Firebase Auth display name if it changed
+      if (name.trim() !== user.displayName) {
+        await updateProfile(auth.currentUser, { displayName: name.trim() });
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setSaveError("Failed to save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
+  if (loading) return (
+    <div style={{ padding:"60px 32px", color:"#4d6a8a", fontSize:14 }}>Loading settings…</div>
+  );
+
   return (
-    <div style={{ padding:"0 32px 40px",maxWidth:640 }}>
+    <div style={{ padding:"0 32px 40px", maxWidth:640 }}>
       <div style={{ padding:"28px 0 20px" }}>
-        <h2 style={{ fontWeight:800,fontSize:24,margin:0 }}>Settings</h2>
-        <p style={{ color:"#4d6a8a",fontSize:14,marginTop:4 }}>Manage your account and preferences</p>
+        <h2 style={{ fontWeight:800, fontSize:24, margin:0 }}>Settings</h2>
+        <p style={{ color:"#4d6a8a", fontSize:14, marginTop:4 }}>Manage your account and preferences</p>
       </div>
 
       {saved && (
-        <div style={{ background:"rgba(34,197,94,.12)",border:"1px solid rgba(34,197,94,.3)",borderRadius:12,padding:"12px 16px",color:"#86efac",fontWeight:700,fontSize:14,marginBottom:16 }}>
+        <div style={{ background:"rgba(34,197,94,.12)", border:"1px solid rgba(34,197,94,.3)", borderRadius:12, padding:"12px 16px", color:"#86efac", fontWeight:700, fontSize:14, marginBottom:16 }}>
           ✓ Settings saved!
+        </div>
+      )}
+      {saveError && (
+        <div style={{ background:"rgba(239,68,68,.1)", border:"1px solid rgba(239,68,68,.25)", borderRadius:12, padding:"12px 16px", color:"#fca5a5", fontWeight:700, fontSize:14, marginBottom:16 }}>
+          ⚠ {saveError}
         </div>
       )}
 
       {/* Profile section */}
-      <div style={{ background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:18,padding:24,marginBottom:16 }}>
-        <div style={{ fontWeight:800,fontSize:15,marginBottom:18 }}>Profile</div>
-        <form onSubmit={save} style={{ display:"flex",flexDirection:"column",gap:14 }}>
-          <div>
-            <label style={{ color:"#4d6a8a",fontSize:13,fontWeight:700,display:"block",marginBottom:6 }}>Full Name</label>
-            <input value={name} onChange={e=>setName(e.target.value)}
-              style={{ width:"100%",background:"rgba(255,255,255,.04)",border:"1px solid #22304a",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"10px 14px",fontFamily:"inherit",outline:"none",boxSizing:"border-box" }} />
-          </div>
-          <div>
-            <label style={{ color:"#4d6a8a",fontSize:13,fontWeight:700,display:"block",marginBottom:6 }}>Email</label>
-            <input value={email} onChange={e=>setEmail(e.target.value)} type="email"
-              style={{ width:"100%",background:"rgba(255,255,255,.04)",border:"1px solid #22304a",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"10px 14px",fontFamily:"inherit",outline:"none",boxSizing:"border-box" }} />
-          </div>
-          <div>
-            <label style={{ color:"#4d6a8a",fontSize:13,fontWeight:700,display:"block",marginBottom:6 }}>Organization / Team</label>
-            <input placeholder="e.g. Toronto FC Academy"
-              style={{ width:"100%",background:"rgba(255,255,255,.04)",border:"1px solid #22304a",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"10px 14px",fontFamily:"inherit",outline:"none",boxSizing:"border-box" }} />
-          </div>
-          <button type="submit"
-            style={{ alignSelf:"flex-start",background:"linear-gradient(135deg,#4f46e5,#6366f1)",border:"none",color:"#fff",borderRadius:10,padding:"10px 20px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit" }}>
-            Save Changes
+      <div style={{ background:"rgba(10,21,37,.85)", border:"1px solid #22304a", borderRadius:18, padding:24, marginBottom:16 }}>
+        <div style={{ fontWeight:800, fontSize:15, marginBottom:18 }}>Profile</div>
+        <form onSubmit={save} style={{ display:"flex", flexDirection:"column", gap:14 }}>
+          {[
+            { label:"Full Name",          val:name,      set:setName,      placeholder:"Jane Smith",              type:"text"  },
+            { label:"Email",              val:email,     set:setEmail,     placeholder:"scout@yourteam.com",      type:"email", disabled:true },
+            { label:"Organization / Team",val:org,       set:setOrg,       placeholder:"e.g. Toronto FC Academy", type:"text"  },
+            { label:"Your Role",          val:roleTitle, set:setRoleTitle, placeholder:"e.g. Head Scout",         type:"text"  },
+          ].map(f => (
+            <div key={f.label}>
+              <label style={{ color:"#4d6a8a", fontSize:13, fontWeight:700, display:"block", marginBottom:6 }}>
+                {f.label}{f.disabled && <span style={{ fontSize:11, marginLeft:6, opacity:.5 }}>(read-only)</span>}
+              </label>
+              <input
+                value={f.val} onChange={e => !f.disabled && f.set(e.target.value)}
+                type={f.type} placeholder={f.placeholder} disabled={!!f.disabled}
+                style={{ width:"100%", background: f.disabled ? "rgba(255,255,255,.02)" : "rgba(255,255,255,.04)", border:"1px solid #22304a", borderRadius:10, color: f.disabled ? "#4d6a8a" : "#f0f6ff", fontSize:14, padding:"10px 14px", fontFamily:"inherit", outline:"none", boxSizing:"border-box", cursor: f.disabled ? "not-allowed" : "auto" }}
+              />
+            </div>
+          ))}
+          <button type="submit" disabled={saving}
+            style={{ alignSelf:"flex-start", background:"linear-gradient(135deg,#4f46e5,#6366f1)", border:"none", color:"#fff", borderRadius:10, padding:"10px 20px", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit", opacity: saving ? .6 : 1 }}>
+            {saving ? "Saving…" : "Save Changes"}
           </button>
         </form>
       </div>
 
       {/* Notifications */}
-      <div style={{ background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:18,padding:24 }}>
-        <div style={{ fontWeight:800,fontSize:15,marginBottom:18 }}>Notifications</div>
-        <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
+      <div style={{ background:"rgba(10,21,37,.85)", border:"1px solid #22304a", borderRadius:18, padding:24 }}>
+        <div style={{ fontWeight:800, fontSize:15, marginBottom:18 }}>Notifications</div>
+        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
           {notifs.map((n, i) => (
-            <div key={i} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",gap:16 }}>
+            <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
               <div>
-                <div style={{ fontWeight:700,fontSize:14 }}>{n.label}</div>
-                <div style={{ color:"#4d6a8a",fontSize:12,marginTop:2 }}>{n.desc}</div>
+                <div style={{ fontWeight:700, fontSize:14 }}>{n.label}</div>
+                <div style={{ color:"#4d6a8a", fontSize:12, marginTop:2 }}>{n.desc}</div>
               </div>
-              <button onClick={() => setNotifStates(s => ({ ...s, [i]: !s[i] }))}
-                style={{ width:44,height:24,borderRadius:999,border:"none",background:notifStates[i]?"#4f46e5":"#1e2d45",cursor:"pointer",position:"relative",flexShrink:0,transition:"background .2s" }}>
-                <span style={{ position:"absolute",top:3,left:notifStates[i]?22:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .2s",display:"block" }} />
+              <button onClick={() => setNotifStates(s => ({ ...s, [i]: !s[i] }))} type="button"
+                style={{ width:44, height:24, borderRadius:999, border:"none", background:notifStates[i]?"#4f46e5":"#1e2d45", cursor:"pointer", position:"relative", flexShrink:0, transition:"background .2s" }}>
+                <span style={{ position:"absolute", top:3, left:notifStates[i]?22:3, width:18, height:18, borderRadius:"50%", background:"#fff", transition:"left .2s", display:"block" }} />
               </button>
             </div>
           ))}
         </div>
+        {/* Save notifications separately or they auto-save with the form — add a quick save button */}
+        <button onClick={save} disabled={saving} type="button"
+          style={{ marginTop:18, background:"rgba(99,102,241,.1)", border:"1px solid rgba(99,102,241,.25)", color:"#c7d2fe", borderRadius:10, padding:"8px 16px", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit", opacity: saving ? .6 : 1 }}>
+          {saving ? "Saving…" : "Save Notification Preferences"}
+        </button>
       </div>
     </div>
   );
