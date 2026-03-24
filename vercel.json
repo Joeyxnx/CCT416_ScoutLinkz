@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/chat.cjs": {
+      "runtime": "nodejs20.x"
+    }
+  }
+}
