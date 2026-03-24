@@ -1030,7 +1030,7 @@ useEffect(() => {
 // ═══════════════════════════════════════════════════════════════
 // PAGE: SETTINGS
 // ═══════════════════════════════════════════════════════════════
-function PageSettings({ user }) {
+function PageSettings({ user, onProfileUpdate }) {
   const [name,         setName]         = useState(user?.displayName || "");
   const [email,        setEmail]        = useState(user?.email || "");
   const [org,          setOrg]          = useState("");
@@ -1083,8 +1083,9 @@ function PageSettings({ user }) {
       if (name.trim() !== user.displayName) {
         await updateProfile(auth.currentUser, { displayName: name.trim() });
       }
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+    setSaved(true);
+          setTimeout(() => setSaved(false), 2500);
+          if (onProfileUpdate) onProfileUpdate();
     } catch (err) {
       setSaveError("Failed to save. Please try again.");
     } finally {
@@ -1119,9 +1120,9 @@ function PageSettings({ user }) {
         <div style={{ fontWeight:800, fontSize:15, marginBottom:18 }}>Profile</div>
         <form onSubmit={save} style={{ display:"flex", flexDirection:"column", gap:14 }}>
           {[
-            { label:"Full Name",          val:name,      set:setName,      placeholder:"Jane Smith",              type:"text"  },
+            { label:"Full Name",          val:name,      set:setName,      placeholder:"Jane Smith",              type:"text",  disabled:true },
             { label:"Email",              val:email,     set:setEmail,     placeholder:"scout@yourteam.com",      type:"email", disabled:true },
-            { label:"Organization / Team",val:org,       set:setOrg,       placeholder:"e.g. Toronto FC Academy", type:"text"  },
+            { label:"Organization / Team",val:org,       set:setOrg,       placeholder:"e.g. Toronto FC Academy", type:"text",  disabled:true },
             { label:"Your Role",          val:roleTitle, set:setRoleTitle, placeholder:"e.g. Head Scout",         type:"text"  },
           ].map(f => (
             <div key={f.label}>
@@ -1659,7 +1660,7 @@ function ScoutDashboard({ scoutProfile }) {
         {page === "saved"     && <PageSaved     athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} />}
         {page === "messages"  && <PageMessages  athletes={athletes} user={user} initialAthlete={messageTarget} />}
         {page === "ai" && <PageAIScout athletes={athletes} onViewAthlete={handleViewAthlete} />}
-        {page === "settings"  && <PageSettings  user={user} />}
+        {page === "settings"  && <PageSettings  user={user} onProfileUpdate={() => fetchScoutProfile(user.uid).then(setScoutProfile)} />}
         {page === "profile" && viewingAthlete && (
           <AthleteProfile athlete={viewingAthlete} statuses={statuses} savedIds={savedIds}
             onStatusChange={handleStatusChange} onToggleSave={handleToggleSave} onBack={handleBack}
