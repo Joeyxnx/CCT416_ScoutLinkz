@@ -1409,11 +1409,32 @@ function AthleteMessages({ athleteUid }) {
 // ═══════════════════════════════════════════════════════════════
 // ATHLETE DASHBOARD — view & manage own profile
 // ═══════════════════════════════════════════════════════════════
-function AthleteDashboard({ profile }) {
+function AthleteDashboard({ profile: initialProfile }) {
   const { user, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
   const [athPage, setAthPage] = useState("profile");
+  const [editing, setEditing] = useState(false);
+  const [profile, setProfile] = useState(initialProfile);
+  const [form, setForm] = useState(initialProfile);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState("");
   const st = profile;
+
+  function setF(key, val) { setForm(f => ({ ...f, [key]: val })); }
+
+  async function handleSave() {
+    setSaving(true); setSaveMsg("");
+    try {
+      await saveAthlete(user.uid, { ...form, updatedAt: serverTimestamp() });
+      setProfile(form);
+      setSaveMsg("✓ Profile saved!");
+      setTimeout(() => { setSaveMsg(""); setEditing(false); }, 1500);
+    } catch {
+      setSaveMsg("Failed to save. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div style={{ minHeight:"100vh", background:"#080e1a", color:"#f0f6ff", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
@@ -1444,50 +1465,144 @@ function AthleteDashboard({ profile }) {
           ))}
         </div>
 
-        {athPage === "profile" && (
+{athPage === "profile" && (
           <>
-            {/* Profile card */}
-            <div style={{ background:"rgba(10,21,37,.9)",border:"1px solid #162438",borderRadius:20,padding:28,marginBottom:20 }}>
-              <div style={{ display:"flex",alignItems:"flex-start",gap:16,marginBottom:18 }}>
-                <div style={{ width:64,height:64,borderRadius:18,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:22 }}>
-                  {st.name?.split(" ").map(x=>x[0]).join("") || "?"}
+            {/* Edit toggle button */}
+            <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:16 }}>
+              {!editing ? (
+                <button onClick={() => setEditing(true)}
+                  style={{ padding:"8px 18px", borderRadius:10, border:"1px solid rgba(99,102,241,.35)", background:"rgba(99,102,241,.1)", color:"#c7d2fe", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+                  ✏ Edit Profile
+                </button>
+              ) : (
+                <div style={{ display:"flex", gap:8 }}>
+                  <button onClick={() => { setEditing(false); setForm(profile); setSaveMsg(""); }}
+                    style={{ padding:"8px 18px", borderRadius:10, border:"1px solid #162438", background:"transparent", color:"#4d6a8a", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+                    Cancel
+                  </button>
+                  <button onClick={handleSave} disabled={saving}
+                    style={{ padding:"8px 18px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#4f46e5,#6366f1)", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit", opacity: saving ? .6 : 1 }}>
+                    {saving ? "Saving…" : "Save Changes"}
+                  </button>
                 </div>
-                <div>
-                  <div style={{ fontWeight:800,fontSize:22,letterSpacing:"-.03em" }}>{st.name}</div>
-                  <div style={{ color:"#4d6a8a",fontSize:14,marginTop:4 }}>{st.sport} · {st.position} · Grad {st.gradYear} · {st.location}</div>
-                  <div style={{ display:"flex",gap:8,marginTop:10,flexWrap:"wrap" }}>
-                    {[`GPA ${st.gpa}`, st.height, st.weight, st.foot ? `${st.foot} foot` : null].filter(Boolean).map(t=>(
-                      <span key={t} style={{ fontSize:12,fontWeight:600,padding:"3px 10px",borderRadius:999,border:"1px solid #162438",background:"rgba(255,255,255,.04)",color:"#4d6a8a" }}>{t}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <p style={{ color:"#4d6a8a",lineHeight:1.6,margin:0,fontFamily:"'DM Sans',sans-serif" }}>{st.bio}</p>
+              )}
             </div>
 
-            {/* Stats */}
-            {st.stats?.length > 0 && (
-              <div style={{ background:"rgba(10,21,37,.9)",border:"1px solid #162438",borderRadius:18,padding:22,marginBottom:20 }}>
-                <div style={{ fontWeight:800,fontSize:15,marginBottom:14,letterSpacing:"-.02em" }}>Your Stats</div>
-                <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10 }}>
-                  {st.stats.map((s,i)=>(
-                    <div key={i} style={{ background:"rgba(255,255,255,.04)",border:"1px solid #162438",borderRadius:12,padding:14 }}>
-                      <div style={{ fontWeight:800,fontSize:20 }}>{s.value}</div>
-                      <div style={{ color:"#4d6a8a",fontSize:12,marginTop:3 }}>{s.label}</div>
-                    </div>
-                  ))}
-                </div>
+            {saveMsg && (
+              <div style={{ background: saveMsg.startsWith("✓") ? "rgba(34,197,94,.12)" : "rgba(239,68,68,.1)", border: `1px solid ${saveMsg.startsWith("✓") ? "rgba(34,197,94,.3)" : "rgba(239,68,68,.25)"}`, borderRadius:10, padding:"12px 16px", color: saveMsg.startsWith("✓") ? "#86efac" : "#fca5a5", fontWeight:700, fontSize:14, marginBottom:16 }}>
+                {saveMsg}
               </div>
             )}
 
-            {/* Status banner */}
-            <div style={{ background:"rgba(99,102,241,.07)",border:"1px dashed rgba(99,102,241,.25)",borderRadius:16,padding:"18px 22px",display:"flex",alignItems:"center",gap:16 }}>
-              <span style={{ fontSize:28 }}>🎯</span>
-              <div>
-                <div style={{ fontWeight:700,fontSize:14,color:"#c7d2fe" }}>Your profile is live</div>
-                <div style={{ color:"#4d6a8a",fontSize:13,marginTop:3,fontFamily:"'DM Sans',sans-serif" }}>Scouts can now discover and contact you. Profile editing coming soon.</div>
+            {editing ? (
+              <div style={{ background:"rgba(10,21,37,.9)", border:"1px solid #162438", borderRadius:20, padding:28, marginBottom:20, display:"flex", flexDirection:"column", gap:16 }}>
+                <h3 style={{ fontWeight:800, fontSize:16, margin:"0 0 4px" }}>Edit Profile</h3>
+                {[
+                  { label:"Full Name", key:"name", type:"text" },
+                  { label:"Location", key:"location", type:"text" },
+                  { label:"Position", key:"position", type:"text" },
+                  { label:"Height", key:"height", type:"text" },
+                  { label:"Weight (lbs)", key:"weight", type:"text" },
+                  { label:"Phone", key:"phone", type:"tel" },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label style={{ color:"#4d6a8a", fontSize:12, fontWeight:600, letterSpacing:".05em", textTransform:"uppercase", display:"block", marginBottom:6 }}>{f.label}</label>
+                    <input value={form[f.key] || ""} onChange={e => setF(f.key, e.target.value)} type={f.type}
+                      style={{ width:"100%", background:"rgba(255,255,255,.05)", border:"1px solid #1e3352", borderRadius:10, color:"#f0f6ff", fontSize:14, padding:"11px 14px", fontFamily:"'DM Sans',sans-serif", outline:"none" }} />
+                  </div>
+                ))}
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                  <div>
+                    <label style={{ color:"#4d6a8a", fontSize:12, fontWeight:600, letterSpacing:".05em", textTransform:"uppercase", display:"block", marginBottom:6 }}>Sport</label>
+                    <select value={form.sport || ""} onChange={e => setF("sport", e.target.value)}
+                      style={{ width:"100%", background:"#0a1525", border:"1px solid #1e3352", borderRadius:10, color:"#f0f6ff", fontSize:14, padding:"11px 14px", fontFamily:"'DM Sans',sans-serif", outline:"none" }}>
+                      {["Soccer","Basketball","Track & Field","Football","Baseball","Volleyball","Swimming","Tennis","Lacrosse","Other"].map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ color:"#4d6a8a", fontSize:12, fontWeight:600, letterSpacing:".05em", textTransform:"uppercase", display:"block", marginBottom:6 }}>Grad Year</label>
+                    <select value={form.gradYear || 2026} onChange={e => setF("gradYear", Number(e.target.value))}
+                      style={{ width:"100%", background:"#0a1525", border:"1px solid #1e3352", borderRadius:10, color:"#f0f6ff", fontSize:14, padding:"11px 14px", fontFamily:"'DM Sans',sans-serif", outline:"none" }}>
+                      {[2025,2026,2027,2028,2029].map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ color:"#4d6a8a", fontSize:12, fontWeight:600, letterSpacing:".05em", textTransform:"uppercase", display:"block", marginBottom:6 }}>GPA Range</label>
+                    <select value={form.gpa || ""} onChange={e => setF("gpa", e.target.value)}
+                      style={{ width:"100%", background:"#0a1525", border:"1px solid #1e3352", borderRadius:10, color:form.gpa?"#f0f6ff":"#4d6a8a", fontSize:14, padding:"11px 14px", fontFamily:"'DM Sans',sans-serif", outline:"none" }}>
+                      <option value="">Select range…</option>
+                      <option value="3.5–4.0">3.5 – 4.0</option>
+                      <option value="3.0–3.5">3.0 – 3.5</option>
+                      <option value="2.5–3.0">2.5 – 3.0</option>
+                      <option value="2.0–2.5">2.0 – 2.5</option>
+                      <option value="Below 2.0">Below 2.0</option>
+                    </select>
+                  </div>
+                  {form.sport === "Soccer" && (
+                    <div>
+                      <label style={{ color:"#4d6a8a", fontSize:12, fontWeight:600, letterSpacing:".05em", textTransform:"uppercase", display:"block", marginBottom:6 }}>Dominant Foot</label>
+                      <select value={form.foot || ""} onChange={e => setF("foot", e.target.value)}
+                        style={{ width:"100%", background:"#0a1525", border:"1px solid #1e3352", borderRadius:10, color:form.foot?"#f0f6ff":"#4d6a8a", fontSize:14, padding:"11px 14px", fontFamily:"'DM Sans',sans-serif", outline:"none" }}>
+                        <option value="">Select…</option>
+                        <option value="Right">Right</option>
+                        <option value="Left">Left</option>
+                        <option value="Both">Both</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label style={{ color:"#4d6a8a", fontSize:12, fontWeight:600, letterSpacing:".05em", textTransform:"uppercase", display:"block", marginBottom:6 }}>Bio</label>
+                  <textarea value={form.bio || ""} onChange={e => setF("bio", e.target.value)} rows={3}
+                    style={{ width:"100%", background:"rgba(255,255,255,.05)", border:"1px solid #1e3352", borderRadius:10, color:"#f0f6ff", fontSize:14, padding:"11px 14px", fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"vertical", lineHeight:1.6 }} />
+                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Profile card */}
+                <div style={{ background:"rgba(10,21,37,.9)",border:"1px solid #162438",borderRadius:20,padding:28,marginBottom:20 }}>
+                  <div style={{ display:"flex",alignItems:"flex-start",gap:16,marginBottom:18 }}>
+                    <div style={{ width:64,height:64,borderRadius:18,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:22 }}>
+                      {st.name?.split(" ").map(x=>x[0]).join("") || "?"}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight:800,fontSize:22,letterSpacing:"-.03em" }}>{st.name}</div>
+                      <div style={{ color:"#4d6a8a",fontSize:14,marginTop:4 }}>{st.sport} · {st.position} · Grad {st.gradYear} · {st.location}</div>
+                      <div style={{ display:"flex",gap:8,marginTop:10,flexWrap:"wrap" }}>
+                        {[`GPA ${st.gpa}`, st.height, st.weight, st.foot ? `${st.foot} foot` : null].filter(Boolean).map(t=>(
+                          <span key={t} style={{ fontSize:12,fontWeight:600,padding:"3px 10px",borderRadius:999,border:"1px solid #162438",background:"rgba(255,255,255,.04)",color:"#4d6a8a" }}>{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <p style={{ color:"#4d6a8a",lineHeight:1.6,margin:0,fontFamily:"'DM Sans',sans-serif" }}>{st.bio}</p>
+                </div>
+
+                {/* Stats */}
+                {st.stats?.length > 0 && (
+                  <div style={{ background:"rgba(10,21,37,.9)",border:"1px solid #162438",borderRadius:18,padding:22,marginBottom:20 }}>
+                    <div style={{ fontWeight:800,fontSize:15,marginBottom:14,letterSpacing:"-.02em" }}>Your Stats</div>
+                    <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10 }}>
+                      {st.stats.map((s,i)=>(
+                        <div key={i} style={{ background:"rgba(255,255,255,.04)",border:"1px solid #162438",borderRadius:12,padding:14 }}>
+                          <div style={{ fontWeight:800,fontSize:20 }}>{s.value}</div>
+                          <div style={{ color:"#4d6a8a",fontSize:12,marginTop:3 }}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Status banner */}
+                <div style={{ background:"rgba(99,102,241,.07)",border:"1px dashed rgba(99,102,241,.25)",borderRadius:16,padding:"18px 22px",display:"flex",alignItems:"center",gap:16 }}>
+                  <span style={{ fontSize:28 }}>🎯</span>
+                  <div>
+                    <div style={{ fontWeight:700,fontSize:14,color:"#c7d2fe" }}>Your profile is live</div>
+                    <div style={{ color:"#4d6a8a",fontSize:13,marginTop:3,fontFamily:"'DM Sans',sans-serif" }}>Scouts can now discover and contact you.</div>
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
 
