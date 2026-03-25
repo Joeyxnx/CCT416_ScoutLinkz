@@ -279,7 +279,7 @@ function LoginPage() {
   }
 
   const titles    = { login: "Welcome back",    signup: "Create account",                  reset: "Reset password" };
-  const subs      = { login: "Sign in to access your scouting dashboard", signup: "Join ScoutLinkz as a scout or coach", reset: "We'll send a reset link to your email" };
+  const subs      = { login: "Sign in to access your scouting dashboard", signup: "Join ScoutLinkz as a scout or athlete", reset: "We'll send a reset link to your email" };
   const btnLabels = { login: "Sign In →",       signup: "Create Account →",                reset: "Send Reset Link →" };
 
   return (
@@ -547,7 +547,7 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
       <div style={{ background:"rgba(10,21,37,.85)",border:"1px solid #22304a",borderRadius:20,padding:24,marginBottom:16 }}>
         <div style={{ display:"flex",gap:18,alignItems:"flex-start",flexWrap:"wrap" }}>
           <div style={{ width:72,height:72,borderRadius:20,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:24,flexShrink:0 }}>
-            {athlete.name.split(" ").map(x=>x[0]).join("")}
+            {(athlete.name || "?").split(" ").map(x=>x[0]).join("")}
           </div>
           <div style={{ flex:1 }}>
             <div style={{ display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:6 }}>
@@ -670,7 +670,7 @@ function PageDashboard({ athletes, statuses, savedIds, viewedIds, onViewAthlete 
             return (
               <div key={a.id} style={{ display:"flex",alignItems:"center",gap:14,padding:"12px 14px",background:"rgba(255,255,255,.03)",borderRadius:12,border:"1px solid #1a2740" }}>
                 <div style={{ width:38,height:38,borderRadius:10,background:"rgba(99,102,241,.12)",border:"1px solid rgba(99,102,241,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:13,flexShrink:0 }}>
-                  {a.name.split(" ").map(x=>x[0]).join("")}
+                  {(a.name || "?").split(" ").map(x=>x[0]).join("")}
                 </div>
                 <div style={{ flex:1 }}>
                   <div style={{ fontWeight:800,fontSize:14 }}>{a.name}</div>
@@ -775,7 +775,7 @@ function PageDiscover({ athletes, statuses, savedIds, onViewAthlete, onToggleSav
                 onMouseLeave={e=>e.currentTarget.style.borderColor="#162438"}>
                 <div style={{ display:"flex",alignItems:"flex-start",gap:12 }}>
                   <div style={{ width:46,height:46,borderRadius:14,background:"rgba(99,102,241,.12)",border:"1px solid rgba(99,102,241,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:16,flexShrink:0 }}>
-                    {a.name.split(" ").map(x=>x[0]).join("")}
+                    {(a.name || "?").split(" ").map(x=>x[0]).join("")}
                   </div>
                   <div style={{ flex:1,minWidth:0 }}>
                     <div style={{ fontWeight:800,fontSize:15 }}>{a.name}</div>
@@ -838,7 +838,7 @@ function PageSaved({ athletes, statuses, savedIds, onViewAthlete, onToggleSave }
             return (
               <div key={a.id} style={{ display:"flex",alignItems:"center",gap:16,background:"rgba(10,21,37,.9)",border:"1px solid #22304a",borderRadius:16,padding:"16px 20px" }}>
                 <div style={{ width:46,height:46,borderRadius:14,background:"rgba(99,102,241,.12)",border:"1px solid rgba(99,102,241,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:16,flexShrink:0 }}>
-                  {a.name.split(" ").map(x=>x[0]).join("")}
+                  {(a.name || "?").split(" ").map(x=>x[0]).join("")}
                 </div>
                 <div style={{ flex:1 }}>
                   <div style={{ fontWeight:800,fontSize:15 }}>{a.name}</div>
@@ -965,7 +965,7 @@ useEffect(() => {
               background: selected?.athleteId === t.athleteId ? "rgba(99,102,241,.12)" : "rgba(255,255,255,.03)",
               border: `1px solid ${selected?.athleteId === t.athleteId ? "rgba(99,102,241,.25)" : "#0f1e30"}` }}>
             <div style={{ width:34, height:34, borderRadius:10, background:"rgba(99,102,241,.12)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, fontSize:12, flexShrink:0 }}>
-              {t.athleteName.split(" ").map(x => x[0]).join("")}
+              {(t.athleteName || "?").split(" ").map(x => x[0]).join("")}
             </div>
             <div style={{ minWidth:0 }}>
               <div style={{ fontWeight:700, fontSize:13 }}>{t.athleteName}</div>
@@ -980,7 +980,7 @@ useEffect(() => {
         <div style={{ flex:1, display:"flex", flexDirection:"column" }}>
           <div style={{ padding:"14px 20px", borderBottom:"1px solid #162438", display:"flex", alignItems:"center", gap:12 }}>
             <div style={{ width:36, height:36, borderRadius:10, background:"rgba(99,102,241,.12)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, fontSize:13 }}>
-              {selected.athleteName.split(" ").map(x => x[0]).join("")}
+              {(selected.athleteName || "?").split(" ").map(x => x[0]).join("")}
             </div>
             <div>
               <div style={{ fontWeight:800 }}>{selected.athleteName}</div>
@@ -1769,7 +1769,7 @@ function ScoutDashboard({ scoutProfile }) {
                     onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.05)"}
                     onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                     <div style={{ width:30,height:30,borderRadius:8,background:"rgba(99,102,241,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:11,flexShrink:0 }}>
-                      {a.name.split(" ").map(x=>x[0]).join("")}
+                      {(a.name || "?").split(" ").map(x=>x[0]).join("")}
                     </div>
                     <div>
                       <div style={{ fontWeight:700,fontSize:13 }}>{a.name}</div>
