@@ -1787,7 +1787,18 @@ function ScoutDashboard({ scoutProfile }) {
         {page === "discover"  && <PageDiscover  athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} defaultSports={defaultSports} />}
         {page === "saved"     && <PageSaved     athletes={athletes} statuses={statuses} savedIds={savedIds} onViewAthlete={handleViewAthlete} onToggleSave={handleToggleSave} />}
         {page === "messages"  && <PageMessages  athletes={athletes} user={user} initialAthlete={messageTarget} />}
-        {page === "ai" && <PageAIScout athletes={athletes} onViewAthlete={handleViewAthlete} />}
+        {page === "ai" && (
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"60vh", gap:16, color:"#4d6a8a" }}>
+            <div style={{ fontSize:48 }}>✦</div>
+            <div style={{ fontWeight:800, fontSize:20, color:"#f0f6ff" }}>AI Scout</div>
+            <div style={{ fontSize:14, textAlign:"center", maxWidth:360, lineHeight:1.7 }}>
+              AI-powered athlete recommendations are coming soon. This feature is currently in development.
+            </div>
+            <div style={{ padding:"8px 16px", borderRadius:999, border:"1px solid rgba(99,102,241,.3)", background:"rgba(99,102,241,.08)", color:"#c7d2fe", fontSize:13, fontWeight:600 }}>
+              🚧 Coming Soon
+            </div>
+          </div>
+        )}
         {page === "settings"  && <PageSettings  user={user} onProfileUpdate={() => fetchScoutProfile(user.uid).then(setScoutProfile)} />}
         {page === "profile" && viewingAthlete && (
           <AthleteProfile athlete={viewingAthlete} statuses={statuses} savedIds={savedIds}
