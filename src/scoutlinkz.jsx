@@ -1551,10 +1551,24 @@ function AthleteDashboard({ profile: initialProfile }) {
                     </div>
                   )}
                 </div>
-                <div>
+<div>
                   <label style={{ color:"#4d6a8a", fontSize:12, fontWeight:600, letterSpacing:".05em", textTransform:"uppercase", display:"block", marginBottom:6 }}>Bio</label>
                   <textarea value={form.bio || ""} onChange={e => setF("bio", e.target.value)} rows={3}
                     style={{ width:"100%", background:"rgba(255,255,255,.05)", border:"1px solid #1e3352", borderRadius:10, color:"#f0f6ff", fontSize:14, padding:"11px 14px", fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"vertical", lineHeight:1.6 }} />
+                </div>
+
+                <div>
+                  <label style={{ color:"#4d6a8a", fontSize:12, fontWeight:600, letterSpacing:".05em", textTransform:"uppercase", display:"block", marginBottom:6 }}>Stats</label>
+                  {(form.stats || [{label:"",value:""},{label:"",value:""},{label:"",value:""},{label:"",value:""}]).map((stat, i) => (
+                    <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+                      <input value={stat.label || ""} placeholder={`Stat ${i+1} label`}
+                        onChange={e => { const s=[...(form.stats||[])]; s[i]={...s[i],label:e.target.value}; setF("stats",s); }}
+                        style={{ background:"rgba(255,255,255,.05)", border:"1px solid #1e3352", borderRadius:10, color:"#f0f6ff", fontSize:14, padding:"11px 14px", fontFamily:"'DM Sans',sans-serif", outline:"none" }} />
+                      <input value={stat.value || ""} placeholder="Value"
+                        onChange={e => { const s=[...(form.stats||[])]; s[i]={...s[i],value:e.target.value}; setF("stats",s); }}
+                        style={{ background:"rgba(255,255,255,.05)", border:"1px solid #1e3352", borderRadius:10, color:"#f0f6ff", fontSize:14, padding:"11px 14px", fontFamily:"'DM Sans',sans-serif", outline:"none" }} />
+                    </div>
+                  ))}
                 </div>
               </div>
             ) : (
