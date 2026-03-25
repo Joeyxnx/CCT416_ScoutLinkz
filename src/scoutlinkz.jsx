@@ -720,7 +720,7 @@ function PageDiscover({ athletes, statuses, savedIds, onViewAthlete, onToggleSav
       return matchQ && matchS && matchSt;
     })
     .sort((a, b) => {
-      if (sortBy === "name") return a.name.localeCompare(b.name);
+      if (sortBy === "name") return (a.name || "").localeCompare(b.name || "");
       if (sortBy === "gpa")  return b.gpa - a.gpa;
       if (sortBy === "grad") return a.gradYear - b.gradYear;
       return 0;
