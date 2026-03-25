@@ -1,12 +1,6 @@
 // ============================================================
 // ScoutLinkz — Firebase Auth System
 // ============================================================
-// SETUP INSTRUCTIONS:
-// 1. npm install firebase
-// 2. Replace the firebaseConfig object below with your real
-//    credentials from Firebase Console → Project Settings → Your apps
-// 3. In Firebase Console, enable Authentication → Email/Password
-// ============================================================ testingg
 
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import PageAIScout from "./PageAIScout";
@@ -49,8 +43,13 @@ const db        = getFirestore(app);
 // ─── FIRESTORE HELPERS ───────────────────────────────────────
 // Athletes
 export async function fetchAthletes() {
-  const snap = await getDocs(query(collection(db, "athletes"), orderBy("createdAt", "desc")));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  try {
+    const snap = await getDocs(query(collection(db, "athletes"), orderBy("createdAt", "desc")));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch {
+    const snap = await getDocs(collection(db, "athletes"));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
 }
 export async function fetchAthlete(uid) {
   const snap = await getDoc(doc(db, "athletes", uid));
@@ -1604,7 +1603,7 @@ function ScoutOnboarding({ onComplete }) {
   );
 }
 
-function ScoutDashboard({ scoutProfile }) {
+function ScoutDashboard({ scoutProfile, setScoutProfile }) {
   const { user, logout } = useAuth();
   const [page, setPage]         = useState("dashboard");
   const [viewingAthlete, setViewingAthlete] = useState(null);
@@ -1615,7 +1614,8 @@ function ScoutDashboard({ scoutProfile }) {
   const [athletes, setAthletes] = useState([]);
   const [dbLoading, setDbLoading] = useState(true);
   const [viewedIds, setViewedIds] = useState([]);
-  const [messageTarget, setMessageTarget] = useState(null);
+const [messageTarget, setMessageTarget] = useState(null);
+const [previousPage, setPreviousPage] = useState("dashboard");
 
   // Load real athletes from Firestore, fall back to demo data
   useEffect(() => {
@@ -1653,8 +1653,9 @@ function ScoutDashboard({ scoutProfile }) {
     setSavedIds(next);
     persist(next, statuses, viewedIds);
   }
-  function handleViewAthlete(a) {
+function handleViewAthlete(a) {
   setViewingAthlete(a);
+  setPreviousPage(page);
   setPage("profile");
   if (!viewedIds.includes(a.id)) {
     const next = [...viewedIds, a.id];
@@ -1662,10 +1663,10 @@ function ScoutDashboard({ scoutProfile }) {
     persist(savedIds, statuses, next);
     }
   }
-  function handleBack() {
-    setViewingAthlete(null);
-    setPage("dashboard");
-  }
+ function handleBack() {
+  setViewingAthlete(null);
+  setPage(previousPage);
+}
   async function handleLogout() {
     setLoggingOut(true);
     await logout();
@@ -2221,7 +2222,7 @@ function AppRouter() {
   if (role === "athlete" && !athleteProfile) return <AthleteProfileSetup />;
   if (role === "athlete" && athleteProfile && !athleteProfile.profileComplete) return <AthleteProfileSetup />;
   if (role === "athlete" && athleteProfile) return <AthleteDashboard profile={athleteProfile} />;
-  return <ScoutDashboard scoutProfile={scoutProfile} />;
+  return <ScoutDashboard scoutProfile={scoutProfile} setScoutProfile={setScoutProfile} />;
 }
 
 // ─── ROOT EXPORT ─────────────────────────────────────────────
