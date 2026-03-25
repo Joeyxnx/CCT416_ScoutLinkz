@@ -556,7 +556,7 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
             </div>
             <div style={{ color:"#4d6a8a",fontSize:14,marginBottom:12 }}>{athlete.sport} · {athlete.position} · Grad {athlete.gradYear} · {athlete.location}</div>
             <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
-              {[athlete.sport, athlete.gpa ? `GPA ${athlete.gpa}` : null, athlete.height, athlete.weight, athlete.foot ? `${athlete.foot} foot` : null].filter(Boolean).map(t => (
+              {[`GPA ${st.gpa}`,st.height,st.weight, st.foot ? `${st.foot} foot` : null].filter(Boolean).map(t=>(
                 <span key={t} style={{ fontSize:12,fontWeight:700,padding:"4px 10px",borderRadius:999,border:"1px solid #22304a",background:"rgba(255,255,255,.05)" }}>{t}</span>
               ))}
             </div>
@@ -1456,7 +1456,7 @@ function AthleteDashboard({ profile }) {
                   <div style={{ fontWeight:800,fontSize:22,letterSpacing:"-.03em" }}>{st.name}</div>
                   <div style={{ color:"#4d6a8a",fontSize:14,marginTop:4 }}>{st.sport} · {st.position} · Grad {st.gradYear} · {st.location}</div>
                   <div style={{ display:"flex",gap:8,marginTop:10,flexWrap:"wrap" }}>
-                    {[`GPA ${st.gpa}`,st.height,st.weight,`${st.foot} foot`].filter(Boolean).map(t=>(
+                    {[`GPA ${athlete.gpa}`, athlete.height, athlete.weight, athlete.foot ? `${athlete.foot} foot` : null].filter(Boolean).map(t=>(
                       <span key={t} style={{ fontSize:12,fontWeight:600,padding:"3px 10px",borderRadius:999,border:"1px solid #162438",background:"rgba(255,255,255,.04)",color:"#4d6a8a" }}>{t}</span>
                     ))}
                   </div>
@@ -1820,7 +1820,7 @@ function AthleteProfileSetup() {
   const [form, setForm] = useState({
     name: user?.displayName || "",
     sport: "", position: "", gradYear: new Date().getFullYear() + 1,
-    location: "", height: "", weight: "", foot: "Right", gpa: "",
+    location: "", height: "", weight: "", foot: "", gpa: "",
     bio: "",
     stats: [
       { label: "", value: "" }, { label: "", value: "" },
@@ -1950,6 +1950,16 @@ function AthleteProfileSetup() {
               </div>
             </div>
             <div>
+              <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Dominant Foot</label>
+              <select value={form.foot} onChange={e => set("foot", e.target.value)}
+                style={{ width:"100%",background:"#0a1525",border:"1px solid #1e3352",borderRadius:10,color:form.foot?"#f0f6ff":"#4d6a8a",fontSize:14,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }}>
+                <option value="">Select…</option>
+                <option value="Right">Right</option>
+                <option value="Left">Left</option>
+                <option value="Both">Both</option>
+              </select>
+            </div>
+            <div>
               <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Bio</label>
               <textarea value={form.bio} onChange={e => set("bio", e.target.value)} rows={3}
                 placeholder="Describe your game, strengths, and what makes you stand out…"
@@ -2056,6 +2066,99 @@ function AthleteProfileSetup() {
     </div>
   );
 }
+// ═══════════════════════════════════════════════════════════════
+// LANDING PAGE
+// ═══════════════════════════════════════════════════════════════
+function LandingPage({ onEnter }) {
+  return (
+    <div style={{ minHeight:"100vh", background:"#080e1a", color:"#f0f6ff", fontFamily:"'Plus Jakarta Sans',sans-serif", overflow:"hidden", position:"relative" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500&display=swap');
+        @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes pulse-orb { 0%,100% { transform:scale(1); opacity:.6; } 50% { transform:scale(1.08); opacity:.9; } }
+        @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+        .land-fade-1 { animation: fadeUp .7s ease forwards; opacity:0; }
+        .land-fade-2 { animation: fadeUp .7s .15s ease forwards; opacity:0; }
+        .land-fade-3 { animation: fadeUp .7s .3s ease forwards; opacity:0; }
+        .land-fade-4 { animation: fadeUp .7s .45s ease forwards; opacity:0; }
+        .land-fade-5 { animation: fadeUp .7s .6s ease forwards; opacity:0; }
+        .land-cta:hover { filter:brightness(1.1); transform:translateY(-2px); box-shadow:0 12px 36px rgba(79,70,229,.5) !important; }
+        .land-cta { transition: all .2s; }
+        .land-ghost:hover { background:rgba(255,255,255,.07) !important; }
+        .land-ghost { transition: background .2s; }
+        .land-card:hover { border-color:rgba(99,102,241,.35) !important; transform:translateY(-3px); }
+        .land-card { transition: all .25s; }
+        .land-orb { animation: pulse-orb 6s ease-in-out infinite; }
+        .land-ball { animation: float 3s ease-in-out infinite; }
+      `}</style>
+
+      {/* Background orbs */}
+      <div className="land-orb" style={{ position:"absolute",width:700,height:700,borderRadius:"50%",background:"radial-gradient(circle,rgba(79,70,229,.13) 0%,transparent 65%)",top:-200,right:-150,pointerEvents:"none" }} />
+      <div style={{ position:"absolute",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle,rgba(99,102,241,.07) 0%,transparent 65%)",bottom:-100,left:-100,pointerEvents:"none" }} />
+      {/* Grid */}
+      <div style={{ position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(99,102,241,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,.04) 1px,transparent 1px)",backgroundSize:"48px 48px",pointerEvents:"none" }} />
+
+      {/* Nav */}
+      <nav className="land-fade-1" style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"22px 48px",position:"relative",zIndex:10 }}>
+        <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+          <div className="land-ball" style={{ width:36,height:36,borderRadius:10,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18 }}>⚽</div>
+          <span style={{ fontWeight:800,fontSize:17,letterSpacing:"-.02em" }}>ScoutLinkz</span>
+        </div>
+        <button className="land-ghost" onClick={onEnter}
+          style={{ padding:"9px 20px",borderRadius:10,border:"1px solid #22304a",background:"transparent",color:"#c7d2fe",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit" }}>
+          Sign In
+        </button>
+      </nav>
+
+      {/* Hero */}
+      <div style={{ maxWidth:900,margin:"0 auto",padding:"80px 32px 60px",textAlign:"center",position:"relative",zIndex:1 }}>
+        <div className="land-fade-1" style={{ display:"inline-flex",alignItems:"center",gap:8,padding:"6px 14px",borderRadius:999,border:"1px solid rgba(99,102,241,.3)",background:"rgba(99,102,241,.08)",color:"#c7d2fe",fontSize:13,fontWeight:600,marginBottom:28 }}>
+          <span style={{ width:6,height:6,borderRadius:"50%",background:"#818cf8",display:"inline-block" }} />
+          Built for scouts, coaches, and athletes
+        </div>
+
+        <h1 className="land-fade-2" style={{ fontWeight:800,fontSize:"clamp(36px,6vw,68px)",lineHeight:1.05,letterSpacing:"-.04em",margin:"0 0 24px" }}>
+          Find the next<br />
+          <span style={{ background:"linear-gradient(135deg,#818cf8,#6366f1,#4f46e5)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent" }}>
+            great athlete.
+          </span>
+        </h1>
+
+        <p className="land-fade-3" style={{ fontSize:18,color:"#4d6a8a",maxWidth:560,margin:"0 auto 40px",lineHeight:1.7,fontFamily:"'DM Sans',sans-serif" }}>
+          ScoutLinkz connects scouts and coaches with verified athlete profiles — complete with stats, highlight reels, and direct messaging.
+        </p>
+
+        <div className="land-fade-4" style={{ display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap" }}>
+          <button className="land-cta" onClick={onEnter}
+            style={{ padding:"14px 32px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#4f46e5,#818cf8)",color:"#fff",fontWeight:700,fontSize:15,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 6px 24px rgba(79,70,229,.35)" }}>
+            Get Started →
+          </button>
+          <button className="land-ghost" onClick={onEnter}
+            style={{ padding:"14px 28px",borderRadius:12,border:"1px solid #22304a",background:"transparent",color:"#c7d2fe",fontWeight:700,fontSize:15,cursor:"pointer",fontFamily:"inherit" }}>
+            Sign In
+          </button>
+        </div>
+      </div>
+
+      {/* Feature cards */}
+      <div className="land-fade-5" style={{ maxWidth:960,margin:"0 auto",padding:"0 32px 80px",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:16,position:"relative",zIndex:1 }}>
+        {[
+          { icon:"🔍", title:"Discover Athletes", desc:"Browse profiles filtered by sport, position, GPA, and graduation year." },
+          { icon:"🎬", title:"Highlight Reels",   desc:"Watch embedded YouTube clips directly from every athlete profile." },
+          { icon:"💬", title:"Direct Messaging",  desc:"Reach out to athletes instantly with built-in scout-to-athlete messaging." },
+          { icon:"✦",  title:"AI Scout",          desc:"Let AI surface the best matches from your athlete pool automatically." },
+        ].map(f => (
+          <div key={f.title} className="land-card"
+            style={{ background:"rgba(10,21,37,.8)",border:"1px solid #162438",borderRadius:18,padding:"22px 24px",backdropFilter:"blur(8px)" }}>
+            <div style={{ fontSize:26,marginBottom:12 }}>{f.icon}</div>
+            <div style={{ fontWeight:800,fontSize:15,marginBottom:8 }}>{f.title}</div>
+            <div style={{ color:"#4d6a8a",fontSize:13,lineHeight:1.6,fontFamily:"'DM Sans',sans-serif" }}>{f.desc}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ═══════════════════════════════════════════════════════════════
 // APP ROUTER — role-aware routing
@@ -2064,6 +2167,7 @@ function AppRouter() {
   const { user, role, loading } = useAuth();
   const [athleteProfile, setAthleteProfile] = useState(undefined);
   const [scoutProfile,   setScoutProfile]   = useState(undefined);
+  const [showLanding, setShowLanding] = useState(true); // ADD THIS
 
   useEffect(() => {
     if (!user || role !== "athlete") { setAthleteProfile(null); return; }
@@ -2090,6 +2194,9 @@ function AppRouter() {
       </div>
     );
   }
+
+  // ADD THIS BLOCK — show landing only when logged out and not dismissed
+  if (!user && showLanding) return <LandingPage onEnter={() => setShowLanding(false)} />;
 
   if (!user) return <LoginPage />;
   if (role === "scout" && !scoutProfile?.onboardingComplete)
