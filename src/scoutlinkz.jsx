@@ -296,7 +296,7 @@ function LoginPage() {
           <div style={s.logoIcon}>⚽</div>
           <div>
             <div style={s.logoName}>ScoutLinkz</div>
-            <div style={s.logoSub}>Scout & Coach Portal</div>
+            <div style={s.logoSub}>Scout & Athlete Portal</div>
           </div>
         </div>
 
@@ -556,7 +556,7 @@ function AthleteProfile({ athlete, statuses, savedIds, onStatusChange, onToggleS
             </div>
             <div style={{ color:"#4d6a8a",fontSize:14,marginBottom:12 }}>{athlete.sport} · {athlete.position} · Grad {athlete.gradYear} · {athlete.location}</div>
             <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
-              {[`GPA ${st.gpa}`,st.height,st.weight, st.foot ? `${st.foot} foot` : null].filter(Boolean).map(t=>(
+              {[`GPA ${athlete.gpa}`, athlete.height, athlete.weight, athlete.foot ? `${athlete.foot} foot` : null].filter(Boolean).map(t=>(
                 <span key={t} style={{ fontSize:12,fontWeight:700,padding:"4px 10px",borderRadius:999,border:"1px solid #22304a",background:"rgba(255,255,255,.05)" }}>{t}</span>
               ))}
             </div>
@@ -1456,7 +1456,7 @@ function AthleteDashboard({ profile }) {
                   <div style={{ fontWeight:800,fontSize:22,letterSpacing:"-.03em" }}>{st.name}</div>
                   <div style={{ color:"#4d6a8a",fontSize:14,marginTop:4 }}>{st.sport} · {st.position} · Grad {st.gradYear} · {st.location}</div>
                   <div style={{ display:"flex",gap:8,marginTop:10,flexWrap:"wrap" }}>
-                    {[`GPA ${athlete.gpa}`, athlete.height, athlete.weight, athlete.foot ? `${athlete.foot} foot` : null].filter(Boolean).map(t=>(
+                    {[`GPA ${st.gpa}`, st.height, st.weight, st.foot ? `${st.foot} foot` : null].filter(Boolean).map(t=>(
                       <span key={t} style={{ fontSize:12,fontWeight:600,padding:"3px 10px",borderRadius:999,border:"1px solid #162438",background:"rgba(255,255,255,.04)",color:"#4d6a8a" }}>{t}</span>
                     ))}
                   </div>
@@ -1804,12 +1804,12 @@ function ScoutDashboard({ scoutProfile }) {
 // ATHLETE PROFILE CREATION FORM (multi-step)
 // ═══════════════════════════════════════════════════════════════
 const SPORTS = ["Soccer","Basketball","Track & Field","Football","Baseball","Volleyball","Swimming","Tennis","Lacrosse","Other"];
-const POSITIONS = {
-  Soccer: ["Goalkeeper","Center Back","Full Back","Defensive Mid","Central Mid","Attacking Mid","Winger","Striker"],
-  Basketball: ["Point Guard","Shooting Guard","Small Forward","Power Forward","Center"],
-  "Track & Field": ["Sprinter","Middle Distance","Long Distance","Jumper","Thrower","Multi-event"],
-  Football: ["QB","RB","WR","TE","OL","DL","LB","CB","Safety","K/P"],
-};
+// const POSITIONS = {
+//   Soccer: ["Goalkeeper","Center Back","Full Back","Defensive Mid","Central Mid","Attacking Mid","Winger","Striker"],
+//   Basketball: ["Point Guard","Shooting Guard","Small Forward","Power Forward","Center"],
+//   "Track & Field": ["Sprinter","Middle Distance","Long Distance","Jumper","Thrower","Multi-event"],
+//   Football: ["QB","RB","WR","TE","OL","DL","LB","CB","Safety","K/P"],
+// };
 
 function AthleteProfileSetup() {
   const { user, logout } = useAuth();
@@ -1861,7 +1861,7 @@ function AthleteProfileSetup() {
   }
 
   const steps = ["Basic Info", "Stats", "Highlights", "Contact"];
-  const positions = POSITIONS[form.sport] || [];
+  // const positions = POSITIONS[form.sport] || [];
 
   return (
     <div style={{ minHeight:"100vh", background:"#080e1a", color:"#f0f6ff", fontFamily:"'Plus Jakarta Sans',sans-serif", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start", padding:"40px 20px 80px" }}>
@@ -1919,12 +1919,9 @@ function AthleteProfileSetup() {
               </div>
               <div>
                 <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Position</label>
-                <select value={form.position} onChange={e => set("position", e.target.value)}
-                  style={{ width:"100%",background:"#0a1525",border:"1px solid #1e3352",borderRadius:10,color:form.position?"#f0f6ff":"#4d6a8a",fontSize:14,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }}>
-                  <option value="">Select position…</option>
-                  {(positions.length ? positions : []).map(p => <option key={p} value={p}>{p}</option>)}
-                  <option value="Other">Other</option>
-                </select>
+                <input value={form.position} onChange={e => set("position", e.target.value)}
+                  placeholder="e.g. Striker, Point Guard, QB…"
+                  style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:14,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }} />
               </div>
               <div>
                 <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Grad Year</label>
@@ -1934,9 +1931,16 @@ function AthleteProfileSetup() {
                 </select>
               </div>
               <div>
-                <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>GPA</label>
-                <input value={form.gpa} onChange={e => set("gpa", e.target.value)} placeholder="3.7" type="number" min="0" max="4" step="0.1"
-                  style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:15,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }} />
+                <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>GPA Range</label>
+                <select value={form.gpa} onChange={e => set("gpa", e.target.value)}
+                  style={{ width:"100%",background:"#0a1525",border:"1px solid #1e3352",borderRadius:10,color:form.gpa?"#f0f6ff":"#4d6a8a",fontSize:14,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }}>
+                  <option value="">Select range…</option>
+                  <option value="3.5–4.0">3.5 – 4.0</option>
+                  <option value="3.0–3.5">3.0 – 3.5</option>
+                  <option value="2.5–3.0">2.5 – 3.0</option>
+                  <option value="2.0–2.5">2.0 – 2.5</option>
+                  <option value="Below 2.0">Below 2.0</option>
+                </select>
               </div>
               <div>
                 <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Height</label>
@@ -1949,16 +1953,18 @@ function AthleteProfileSetup() {
                   style={{ width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid #1e3352",borderRadius:10,color:"#f0f6ff",fontSize:15,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }} />
               </div>
             </div>
-            <div>
-              <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Dominant Foot</label>
-              <select value={form.foot} onChange={e => set("foot", e.target.value)}
-                style={{ width:"100%",background:"#0a1525",border:"1px solid #1e3352",borderRadius:10,color:form.foot?"#f0f6ff":"#4d6a8a",fontSize:14,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }}>
-                <option value="">Select…</option>
-                <option value="Right">Right</option>
-                <option value="Left">Left</option>
-                <option value="Both">Both</option>
-              </select>
-            </div>
+            {form.sport === "Soccer" && (
+              <div>
+                <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Dominant Foot</label>
+                <select value={form.foot} onChange={e => set("foot", e.target.value)}
+                  style={{ width:"100%",background:"#0a1525",border:"1px solid #1e3352",borderRadius:10,color:form.foot?"#f0f6ff":"#4d6a8a",fontSize:14,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",outline:"none" }}>
+                  <option value="">Select…</option>
+                  <option value="Right">Right</option>
+                  <option value="Left">Left</option>
+                  <option value="Both">Both</option>
+                </select>
+              </div>
+            )}
             <div>
               <label style={{ color:"#4d6a8a",fontSize:12,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",display:"block",marginBottom:6 }}>Bio</label>
               <textarea value={form.bio} onChange={e => set("bio", e.target.value)} rows={3}
