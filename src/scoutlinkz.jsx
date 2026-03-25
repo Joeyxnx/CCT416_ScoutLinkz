@@ -708,7 +708,7 @@ function PageDiscover({ athletes, statuses, savedIds, onViewAthlete, onToggleSav
   const [statusFilter, setStatusF] = useState("All");
   const [sortBy, setSort]          = useState("name");
 
-  const sports   = ["All", ...Array.from(new Set(athletes.map(a => a.sport)))];
+  const sports = ["All", ...Array.from(new Set(athletes.map(a => a.sport).filter(Boolean)))];
   const statuses_list = ["All", ...Object.keys(STATUS_CONFIG)];
 
   const filtered = athletes
@@ -1267,8 +1267,9 @@ function PageSettings({ user, onProfileUpdate }) {
         borderRadius:18,
         padding:24
       }}>
-        <div style={{ fontWeight:800, fontSize:15, marginBottom:18 }}>
-          Notifications
+        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:18 }}>
+          <div style={{ fontWeight:800, fontSize:15 }}>Notifications</div>
+          <span style={{ fontSize:11, fontWeight:600, padding:"2px 8px", borderRadius:999, background:"rgba(251,191,36,.08)", border:"1px solid rgba(251,191,36,.2)", color:"#fbbf24" }}>UI only — coming soon</span>
         </div>
 
         {notifs.map((n, i) => (
