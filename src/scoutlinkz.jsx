@@ -714,7 +714,7 @@ function PageDiscover({ athletes, statuses, savedIds, onViewAthlete, onToggleSav
   const filtered = athletes
     .filter(a => {
       const q = search.toLowerCase();
-      const matchQ = !q || a.name.toLowerCase().includes(q) || a.sport.toLowerCase().includes(q) || a.position.toLowerCase().includes(q) || a.location.toLowerCase().includes(q);
+      const matchQ = !q || (a.name||"").toLowerCase().includes(q) || (a.sport||"").toLowerCase().includes(q) || (a.position||"").toLowerCase().includes(q) || (a.location||"").toLowerCase().includes(q);
       const matchS = sportFilter === "All" || a.sport === sportFilter;
       const matchSt = statusFilter === "All" || (statuses[a.id] || "none") === statusFilter;
       return matchQ && matchS && matchSt;
