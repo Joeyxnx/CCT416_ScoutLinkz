@@ -16,6 +16,7 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  deleteUser,
 } from "firebase/auth";
 import {
   getFirestore,
@@ -72,20 +73,20 @@ export async function fetchScoutProfile(scoutUid) {
   return snap.exists() ? snap.data() : null;
 }
 export async function deleteAthleteProfile(uid) {
-  // Delete all conversations the athlete is part of
   const convSnap = await getDocs(
     query(collection(db, "conversations"), where("athleteUid", "==", uid))
   );
   for (const convDoc of convSnap.docs) {
-    // Delete all messages in the conversation sub-collection
     const msgSnap = await getDocs(collection(db, "conversations", convDoc.id, "messages"));
     for (const msgDoc of msgSnap.docs) {
       await deleteDoc(doc(db, "conversations", convDoc.id, "messages", msgDoc.id));
     }
     await deleteDoc(doc(db, "conversations", convDoc.id));
   }
-  // Delete the athlete document itself
   await deleteDoc(doc(db, "athletes", uid));
+  // Delete the Firebase Auth account so the email can't be reused
+  const currentUser = auth.currentUser;
+  if (currentUser) await deleteUser(currentUser);
 }
 // Messaging
 export async function fetchConversations(userUid) {
@@ -159,7 +160,7 @@ function AuthProvider({ children }) {
           const scoutSnap   = await getDoc(doc(db, "scouts",   firebaseUser.uid));
           if (athleteSnap.exists()) setRole("athlete");
           else if (scoutSnap.exists()) setRole("scout");
-          else setRole("scout");
+          else setRole(null);
         } catch {
           setRole("scout");
         }
@@ -2446,7 +2447,7 @@ function AppRouter() {
   // ADD THIS BLOCK — show landing only when logged out and not dismissed
   if (!user && showLanding) return <LandingPage onEnter={() => setShowLanding(false)} />;
 
-  if (!user) return <LoginPage />;
+  if (!user || role === null) return <LoginPage />;
   if (role === "scout" && !scoutProfile?.onboardingComplete)
     return <ScoutOnboarding onComplete={p => setScoutProfile(prev => ({ ...prev, ...p, onboardingComplete: true }))} />;
   if (role === "athlete" && !athleteProfile) return <AthleteProfileSetup />;
