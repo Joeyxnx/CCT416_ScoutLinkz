@@ -71,6 +71,22 @@ export async function fetchScoutProfile(scoutUid) {
   const snap = await getDoc(doc(db, "scouts", scoutUid));
   return snap.exists() ? snap.data() : null;
 }
+export async function deleteAthleteProfile(uid) {
+  // Delete all conversations the athlete is part of
+  const convSnap = await getDocs(
+    query(collection(db, "conversations"), where("athleteUid", "==", uid))
+  );
+  for (const convDoc of convSnap.docs) {
+    // Delete all messages in the conversation sub-collection
+    const msgSnap = await getDocs(collection(db, "conversations", convDoc.id, "messages"));
+    for (const msgDoc of msgSnap.docs) {
+      await deleteDoc(doc(db, "conversations", convDoc.id, "messages", msgDoc.id));
+    }
+    await deleteDoc(doc(db, "conversations", convDoc.id));
+  }
+  // Delete the athlete document itself
+  await deleteDoc(doc(db, "athletes", uid));
+}
 // Messaging
 export async function fetchConversations(userUid) {
   const q = query(
@@ -1418,6 +1434,10 @@ function AthleteDashboard({ profile: initialProfile }) {
   const [form, setForm] = useState(initialProfile);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const st = profile;
 
   function setF(key, val) { setForm(f => ({ ...f, [key]: val })); }
@@ -1453,6 +1473,73 @@ function AthleteDashboard({ profile: initialProfile }) {
       </header>
 
       <main style={{ maxWidth:800, margin:"0 auto", padding:"32px 24px" }}>
+
+        {showDeleteModal && (
+          <div style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,.7)", zIndex: 100,
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 20
+          }}>
+            <div style={{
+              background: "#0a1525", border: "1px solid rgba(239,68,68,.3)",
+              borderRadius: 20, padding: 32, maxWidth: 420, width: "100%",
+              boxShadow: "0 24px 60px rgba(0,0,0,.6)"
+            }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+              <h3 style={{ fontWeight: 800, fontSize: 18, margin: "0 0 8px", color: "#f87171" }}>
+                Delete your profile?
+              </h3>
+              <p style={{ color: "#4d6a8a", fontSize: 14, lineHeight: 1.6, margin: "0 0 20px", fontFamily: "'DM Sans',sans-serif" }}>
+                This permanently deletes your athlete profile and all associated messages.
+                Scouts will no longer be able to find you. <strong style={{ color: "#f0f6ff" }}>This cannot be undone.</strong>
+              </p>
+              <label style={{ color: "#4d6a8a", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 8 }}>
+                Type <span style={{ color: "#f87171", fontFamily: "monospace" }}>DELETE</span> to confirm
+              </label>
+              <input
+                value={deleteConfirmText}
+                onChange={e => { setDeleteConfirmText(e.target.value); setDeleteError(""); }}
+                placeholder="DELETE"
+                style={{
+                  width: "100%", background: "rgba(255,255,255,.05)", border: "1px solid rgba(239,68,68,.3)",
+                  borderRadius: 10, color: "#f0f6ff", fontSize: 14, padding: "10px 14px",
+                  fontFamily: "monospace", outline: "none", marginBottom: 12, boxSizing: "border-box"
+                }}
+              />
+              {deleteError && (
+                <div style={{ color: "#fca5a5", fontSize: 13, marginBottom: 12 }}>{deleteError}</div>
+              )}
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); setDeleteError(""); }}
+                  style={{ flex: 1, padding: "10px", borderRadius: 10, border: "1px solid #22304a", background: "transparent", color: "#4d6a8a", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+                  Cancel
+                </button>
+                <button
+                  disabled={deleting}
+                  onClick={async () => {
+                    if (deleteConfirmText !== "DELETE") { setDeleteError('Please type "DELETE" exactly.'); return; }
+                    setDeleting(true); setDeleteError("");
+                    try {
+                      await deleteAthleteProfile(user.uid);
+                      await logout();
+                    } catch {
+                      setDeleteError("Failed to delete. Please try again.");
+                      setDeleting(false);
+                    }
+                  }}
+                  style={{
+                    flex: 1, padding: "10px", borderRadius: 10, border: "none",
+                    background: deleteConfirmText === "DELETE" ? "rgba(239,68,68,.85)" : "rgba(239,68,68,.25)",
+                    color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit",
+                    opacity: deleting ? .6 : 1, transition: "background .2s"
+                  }}>
+                  {deleting ? "Deleting…" : "Delete forever"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tab nav */}
         <div style={{ display:"flex", gap:8, marginBottom:24 }}>
           {["profile","messages"].map(tab => (
@@ -1607,13 +1694,26 @@ function AthleteDashboard({ profile: initialProfile }) {
                   </div>
                 )}
 
-                {/* Status banner */}
+{/* Status banner */}
                 <div style={{ background:"rgba(99,102,241,.07)",border:"1px dashed rgba(99,102,241,.25)",borderRadius:16,padding:"18px 22px",display:"flex",alignItems:"center",gap:16 }}>
                   <span style={{ fontSize:28 }}>🎯</span>
                   <div>
                     <div style={{ fontWeight:700,fontSize:14,color:"#c7d2fe" }}>Your profile is live</div>
                     <div style={{ color:"#4d6a8a",fontSize:13,marginTop:3,fontFamily:"'DM Sans',sans-serif" }}>Scouts can now discover and contact you.</div>
                   </div>
+                </div>
+
+                {/* Danger zone */}
+                <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #162438" }}>
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    style={{
+                      padding: "8px 16px", borderRadius: 10,
+                      border: "1px solid rgba(239,68,68,.25)", background: "rgba(239,68,68,.06)",
+                      color: "#f87171", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit"
+                    }}>
+                    🗑 Delete my profile
+                  </button>
                 </div>
               </>
             )}
