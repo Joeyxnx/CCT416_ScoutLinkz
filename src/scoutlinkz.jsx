@@ -2315,67 +2315,6 @@ function AthleteProfileSetup() {
     </div>
   );
 }
-function MobileInstallBanner() {
-  const [show, setShow] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isIOS, setIsIOS] = useState(false);
-
-  useEffect(() => {
-    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
-    setIsIOS(ios);
-    if (mobile && !standalone) setShow(true);
-
-    window.addEventListener("beforeinstallprompt", e => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    });
-  }, []);
-
-  if (!show) return null;
-
-  async function handleInstall() {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") setShow(false);
-      setDeferredPrompt(null);
-    }
-  }
-
-  return (
-    <div style={{
-      margin: "0 16px 0", borderRadius: 14,
-      background: "rgba(99,102,241,.1)", border: "1px solid rgba(99,102,241,.3)",
-      padding: "12px 16px", display: "flex", alignItems: "center", gap: 12,
-      position: "relative", zIndex: 10
-    }}>
-      <div style={{ fontSize: 24, flexShrink: 0 }}>📲</div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 700, fontSize: 13, color: "#c7d2fe" }}>Install ScoutLinkz</div>
-        <div style={{ color: "#4d6a8a", fontSize: 12, marginTop: 2 }}>
-          {isIOS
-            ? 'Tap Share → "Add to Home Screen" for the best experience'
-            : "Add to your home screen for quick access"}
-        </div>
-      </div>
-      {!isIOS && deferredPrompt && (
-        <button onClick={handleInstall} style={{
-          padding: "7px 14px", borderRadius: 8, border: "none",
-          background: "linear-gradient(135deg,#4f46e5,#6366f1)",
-          color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit", flexShrink: 0
-        }}>
-          Install
-        </button>
-      )}
-      <button onClick={() => setShow(false)} style={{
-        background: "none", border: "none", color: "#4d6a8a",
-        cursor: "pointer", fontSize: 18, padding: 0, flexShrink: 0, lineHeight: 1
-      }}>×</button>
-    </div>
-  );
-}
 // ═══════════════════════════════════════════════════════════════
 // LANDING PAGE
 // ═══════════════════════════════════════════════════════════════
@@ -2419,9 +2358,6 @@ function LandingPage({ onEnter }) {
           Sign In
         </button>
       </nav>
-      
-      {/* Mobile install banner */}
-      <MobileInstallBanner />
 
       {/* Hero */}
       <div style={{ maxWidth:900,margin:"0 auto",padding:"80px 32px 60px",textAlign:"center",position:"relative",zIndex:1 }}>
